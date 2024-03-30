@@ -1,9 +1,16 @@
-#![allow(non_camel_case_types)]
-include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+use autocxx::prelude::*;
+
+include_cpp! {
+    #include "lldb/API/LLDB.h"
+    safety!(unsafe_ffi)
+    generate!("lldb::SBDebugger")
+}
 
 use eframe::egui;
 
 fn main() -> Result<(), eframe::Error> {
+    let lldb_error = ffi::lldb::SBDebugger::InitializeWithErrorHandling().within_unique_ptr();
+
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default(),
         ..Default::default()
