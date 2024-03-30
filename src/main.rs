@@ -1,21 +1,16 @@
-use autocxx::prelude::*;
-
-include_cpp! {
-    #include "lldb/API/LLDB.h"
-    safety!(unsafe_ffi)
-    generate!("lldb::SBDebugger")
-}
-
 use eframe::egui;
+use lldb::SBDebugger;
 
 fn main() -> Result<(), eframe::Error> {
-    let lldb_error = ffi::lldb::SBDebugger::InitializeWithErrorHandling().within_unique_ptr();
+    SBDebugger::initialize();
 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default(),
         ..Default::default()
     };
-    eframe::run_native("lldb-gui", options, Box::new(|_cc| Box::<MyApp>::default()))
+    let ret = eframe::run_native("lldb-gui", options, Box::new(|_cc| Box::<MyApp>::default()));
+    SBDebugger::terminate();
+    ret
 }
 
 #[derive(Default)]
