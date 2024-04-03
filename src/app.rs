@@ -1,5 +1,5 @@
 use egui::{widgets, Align, CentralPanel, Layout, SidePanel, TopBottomPanel};
-use lldb::{LaunchFlags, SBDebugger, SBError, SBLaunchInfo};
+use lldb::{SBEvent, SBListener, SBTarget};
 
 #[derive(Debug, PartialEq)]
 enum ConsoleTab {
@@ -10,17 +10,18 @@ enum ConsoleTab {
 
 pub struct App {
     console_tab: ConsoleTab,
-    debugger: SBDebugger,
+    target: SBTarget,
+    listener: SBListener,
 }
 
 impl App {
-    pub fn new() -> Self {
-        let app = Self {
+    pub fn new(target: SBTarget) -> Self {
+        let listener = target.debugger().listener();
+        Self {
             console_tab: ConsoleTab::Console,
-            debugger: SBDebugger::create(false),
-        };
-        app.debugger.enable_log("lldb", &["default"]);
-        app
+            target,
+            listener,
+        }
     }
 }
 
@@ -28,8 +29,15 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let Self {
             console_tab,
-            debugger: _,
+            target,
+            listener,
         } = self;
+
+        let process = target.process();
+        let mut event = SBEvent::new();
+        while listener.get_next_event(&mut event) {
+            println!("{:?}", event);
+        }
         TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 widgets::global_dark_light_mode_switch(ui);
@@ -43,8 +51,27 @@ impl eframe::App for App {
         SidePanel::left("left_panel")
             .resizable(true)
             .show(ctx, |ui| {
-                ui.label("Target: ");
-                ui.label("Process state: ");
+                egui::Grid::new("my_grid")
+                    .num_columns(2)
+                    .striped(true)
+                    .show(ui, |ui| {
+                        ui.label("Target:");
+                        ui.label(format!("{:?}", target));
+                        ui.end_row();
+
+                        ui.label("Process state:");
+                        ui.label(format!("{:?}", process.state()));
+                        ui.end_row();
+                    });
+                if process.is_running() {
+                    if ui.button("Stop").clicked() {
+                        process.stop().unwrap();
+                    }
+                } else {
+                    if ui.button("Run").clicked() {
+                        process.continue_execution().unwrap();
+                    }
+                }
             });
         SidePanel::right("right_panel")
             .resizable(true)
