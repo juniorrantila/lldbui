@@ -1,9 +1,10 @@
 [package]
-name = "lldb-gui"
+name = "lldb_gui"
 version = "0.1.0"
 edition = "2021"
+authors = ["Dennis Schön <mail@dennis-schoen.de>"]
 
 [dependencies]
+egui = "0.27.0"
 eframe = "0.27.0"
-rfd = "0.14.1"
 lldb = "0.0.11"
