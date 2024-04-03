@@ -1,6 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 use clap::Parser;
-use lldb::{LaunchFlags, SBDebugger, SBError, SBLaunchInfo, SBTarget};
+use lldb::{
+    sys::SBInstructionDumpEmulation, LaunchFlags, SBDebugger, SBError, SBLaunchInfo, SBTarget,
+};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -14,6 +16,7 @@ fn main() -> eframe::Result<()> {
     SBDebugger::initialize();
 
     let debugger = SBDebugger::create(false);
+    debugger.set_asynchronous(true);
 
     let target = debugger
         .create_target(&cli.target, None, None, false)
