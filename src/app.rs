@@ -2,7 +2,7 @@ use egui::{
     widgets, Align, CentralPanel, Layout, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui,
 };
 use egui_extras::syntax_highlighting::{code_view_ui, CodeTheme};
-use lldb::{SBDebugger, SBEvent, SBListener, SBProcess, SBTarget, SBThread, SBValue, StateType};
+use lldb::{SBDebugger, SBEvent, SBTarget, SBValue};
 use std::collections::HashMap;
 use std::fs::read_to_string;
 use std::path::PathBuf;
@@ -94,8 +94,8 @@ impl eframe::App for App {
         self.selected_frame_id = thread.selected_frame().frame_id();
 
         // without polling the events process.state() never changes???
-        let mut event = SBEvent::new();
-        while debugger.listener().get_next_event(&mut event) {
+        let event = SBEvent::new();
+        while debugger.listener().get_next_event(&event) {
             println!("{:?}", event);
         }
 
@@ -122,7 +122,7 @@ impl eframe::App for App {
                     .show(ui, |ui| {
                         if let Some(executable) = executable {
                             ui.label("Target:");
-                            ui.label(format!("{}", executable.filename()));
+                            ui.label(executable.filename().to_string());
                             ui.end_row();
                         }
 
@@ -138,10 +138,8 @@ impl eframe::App for App {
                     if ui.button("Stop").clicked() {
                         process.stop().unwrap();
                     }
-                } else if process.is_stopped() {
-                    if ui.button("Run").clicked() {
-                        process.continue_execution().unwrap();
-                    }
+                } else if process.is_stopped() && ui.button("Run").clicked() {
+                    process.continue_execution().unwrap();
                 }
             });
         SidePanel::right("right_panel")
@@ -319,7 +317,7 @@ impl eframe::App for App {
 
                 ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
                     ScrollArea::horizontal().auto_shrink(false).show(ui, |ui| {
-                        code_view_ui(ui, &CodeTheme::from_style(ui.style()), &code, "C");
+                        code_view_ui(ui, &CodeTheme::from_style(ui.style()), code, "C");
                     });
                 });
             }
