@@ -1,7 +1,7 @@
 use egui::{
     widgets, Align, CentralPanel, Layout, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui,
 };
-use lldb::{SBDebugger, SBEvent, SBListener, SBTarget, SBValue};
+use lldb::{SBDebugger, SBEvent, SBListener, SBProcess, SBTarget, SBThread, SBValue, StateType};
 
 #[derive(Debug, PartialEq)]
 enum ConsoleTab {
@@ -54,9 +54,11 @@ impl eframe::App for App {
 
         let process = target.process();
         let thread = process.selected_thread();
+        let frame = thread.selected_frame();
         *selected_thread_id = thread.thread_id();
         *selected_frame_id = thread.selected_frame().frame_id();
 
+        // without polling the events process.state() never changes???
         let mut event = SBEvent::new();
         while listener.get_next_event(&mut event) {
             println!("{:?}", event);
@@ -109,25 +111,45 @@ impl eframe::App for App {
             .resizable(true)
             .show(ctx, |ui| {
                 ui.label("threads");
-                for thread in process.threads() {
-                    if ui
-                        .selectable_value(
-                            selected_thread_id,
-                            thread.thread_id(),
-                            format!("{}", thread.thread_id()),
-                        )
-                        .clicked()
-                    {
-                        process.set_selected_thread(&thread);
-                    }
-                }
+                ScrollArea::vertical().id_source("threads").show(ui, |ui| {
+                    egui::Grid::new("frames")
+                        .num_columns(1)
+                        .striped(true)
+                        .show(ui, |ui| {
+                            for thread in process.threads() {
+                                if !thread.is_valid() {
+                                    continue;
+                                }
+                                let mut label = format!(
+                                    "{} {}",
+                                    thread.thread_id(),
+                                    thread.name().unwrap_or("")
+                                );
+                                if let Some(queue) = thread.queue() {
+                                    label.push_str(&format!(" queue={}", queue.name()));
+                                }
+                                if thread.is_stopped() {
+                                    label.push_str(&format!(
+                                        " stop_reason={:?}",
+                                        thread.stop_reason()
+                                    ));
+                                }
+                                if ui
+                                    .selectable_value(selected_thread_id, thread.thread_id(), label)
+                                    .clicked()
+                                {
+                                    process.set_selected_thread(&thread);
+                                }
+                                ui.end_row();
+                            }
+                        });
+                });
                 ui.separator();
                 ui.label("frames");
                 egui::Grid::new("frames")
                     .num_columns(2)
                     .striped(true)
                     .show(ui, |ui| {
-                        let thread = process.selected_thread();
                         for frame in thread.frames() {
                             if !frame.is_valid() {
                                 continue;
@@ -144,8 +166,8 @@ impl eframe::App for App {
                                 {
                                     thread.set_selected_frame(frame.frame_id());
                                 }
-                            } else if let Some(name) = frame.display_function_name() {
-                                ui.label(name);
+                            } else {
+                                ui.label(frame.display_function_name().unwrap_or(""));
                             }
                             if let Some(line_entry) = frame.line_entry() {
                                 ui.label(format!(
@@ -166,22 +188,22 @@ impl eframe::App for App {
                     ui.selectable_value(variables_tab, VariableTab::Arguments, "arguments");
                     ui.selectable_value(variables_tab, VariableTab::Registers, "registers");
                 });
-                let thread = process.selected_thread();
-                let frame = thread.selected_frame();
-                ScrollArea::vertical().show(ui, |ui| match variables_tab {
-                    VariableTab::Locals => {
-                        render_values(ui, frame.locals().iter());
-                    }
-                    VariableTab::Statics => {
-                        render_values(ui, frame.statics().iter());
-                    }
-                    VariableTab::Arguments => {
-                        render_values(ui, frame.arguments().iter());
-                    }
-                    VariableTab::Registers => {
-                        render_values(ui, frame.registers().iter());
-                    }
-                });
+                ScrollArea::vertical()
+                    .id_source("variables")
+                    .show(ui, |ui| match variables_tab {
+                        VariableTab::Locals => {
+                            render_values(ui, frame.locals().iter());
+                        }
+                        VariableTab::Statics => {
+                            render_values(ui, frame.statics().iter());
+                        }
+                        VariableTab::Arguments => {
+                            render_values(ui, frame.arguments().iter());
+                        }
+                        VariableTab::Registers => {
+                            render_values(ui, frame.registers().iter());
+                        }
+                    });
             });
         TopBottomPanel::bottom("console_panel")
             .resizable(true)
