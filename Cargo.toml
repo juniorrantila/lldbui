@@ -6,10 +6,11 @@ authors = ["Dennis Schön <mail@dennis-schoen.de>"]
 
 [dependencies]
 egui = "0.27.0"
-eframe = "0.27.0"
+eframe = { version = "0.27.0", features = ["persistence"] }
 lldb = "0.0.11"
 clap = { version = "4.5.4", features = ["derive"] }
 egui_extras = { version = "0.27.2", features = ["syntect"] }
+serde = "1.0.197"
 
 [patch.crates-io]
 lldb = { git = 'https://github.com/roccoblues/lldb.rs', branch = 'fix-value-fetch'}

@@ -1,8 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 use clap::Parser;
-use lldb::{
-    sys::SBInstructionDumpEmulation, LaunchFlags, SBDebugger, SBError, SBLaunchInfo, SBTarget,
-};
+use lldb::{LaunchFlags, SBDebugger, SBLaunchInfo};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -34,8 +32,11 @@ fn main() -> eframe::Result<()> {
         ..Default::default()
     };
 
-    let app = lldbui::App::new(target);
-    eframe::run_native("lldbui", native_options, Box::new(|_| Box::new(app)))?;
+    eframe::run_native(
+        "lldbui",
+        native_options,
+        Box::new(|cc| Box::new(lldbui::App::new(cc, target))),
+    )?;
 
     SBDebugger::terminate();
 
