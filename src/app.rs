@@ -1,5 +1,7 @@
-use egui::{widgets, Align, CentralPanel, Layout, RichText, ScrollArea, SidePanel, TopBottomPanel};
-use lldb::{SBDebugger, SBEvent, SBListener, SBTarget};
+use egui::{
+    widgets, Align, CentralPanel, Layout, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui,
+};
+use lldb::{SBDebugger, SBEvent, SBListener, SBTarget, SBValue};
 
 #[derive(Debug, PartialEq)]
 enum ConsoleTab {
@@ -8,8 +10,17 @@ enum ConsoleTab {
     Stderr,
 }
 
+#[derive(Debug, PartialEq)]
+enum VariableTab {
+    Locals,
+    Statics,
+    Arguments,
+    Registers,
+}
+
 pub struct App {
     console_tab: ConsoleTab,
+    variables_tab: VariableTab,
     target: SBTarget,
     listener: SBListener,
     selected_thread_id: u64,
@@ -21,6 +32,7 @@ impl App {
         let listener = target.debugger().listener();
         Self {
             console_tab: ConsoleTab::Console,
+            variables_tab: VariableTab::Locals,
             target,
             listener,
             selected_thread_id: 0,
@@ -33,6 +45,7 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let Self {
             console_tab,
+            variables_tab,
             target,
             listener,
             selected_thread_id,
@@ -40,7 +53,9 @@ impl eframe::App for App {
         } = self;
 
         let process = target.process();
-        *selected_thread_id = process.selected_thread().thread_id();
+        let thread = process.selected_thread();
+        *selected_thread_id = thread.thread_id();
+        *selected_frame_id = thread.selected_frame().frame_id();
 
         let mut event = SBEvent::new();
         while listener.get_next_event(&mut event) {
@@ -62,7 +77,7 @@ impl eframe::App for App {
         SidePanel::left("left_panel")
             .resizable(true)
             .show(ctx, |ui| {
-                egui::Grid::new("my_grid")
+                egui::Grid::new("target")
                     .num_columns(2)
                     .striped(true)
                     .show(ui, |ui| {
@@ -74,6 +89,10 @@ impl eframe::App for App {
 
                         ui.label("Process state:");
                         ui.label(format!("{:?}", process.state()));
+                        ui.end_row();
+
+                        ui.label("PID:");
+                        ui.label(format!("{:?}", process.process_id()));
                         ui.end_row();
                     });
                 if process.is_running() {
@@ -89,73 +108,79 @@ impl eframe::App for App {
         SidePanel::right("right_panel")
             .resizable(true)
             .show(ctx, |ui| {
-                ScrollArea::vertical().id_source("threads").show(ui, |ui| {
-                    ui.label("threads");
-                    for thread in process.threads() {
-                        if ui
-                            .selectable_value(
-                                selected_thread_id,
-                                thread.thread_id(),
-                                format!("{}", thread.thread_id()),
-                            )
-                            .clicked()
-                        {
-                            process.set_selected_thread(&thread);
-                        }
+                ui.label("threads");
+                for thread in process.threads() {
+                    if ui
+                        .selectable_value(
+                            selected_thread_id,
+                            thread.thread_id(),
+                            format!("{}", thread.thread_id()),
+                        )
+                        .clicked()
+                    {
+                        process.set_selected_thread(&thread);
                     }
-                });
+                }
                 ui.separator();
-                ScrollArea::vertical().id_source("frames").show(ui, |ui| {
-                    ui.label("frames");
-                    ScrollArea::horizontal().show(ui, |ui| {
-                        egui::Grid::new("my_grid")
-                            .num_columns(2)
-                            .striped(true)
-                            .show(ui, |ui| {
-                                let thread = process.selected_thread();
-                                for frame in thread.frames() {
-                                    if !frame.is_valid() {
-                                        continue;
-                                    }
-                                    let function = frame.function();
-                                    if function.is_valid() {
-                                        if ui
-                                            .selectable_value(
-                                                selected_frame_id,
-                                                frame.frame_id(),
-                                                function.display_name(),
-                                            )
-                                            .clicked()
-                                        {
-                                            thread.set_selected_frame(frame.frame_id());
-                                        }
-                                    } else if let Some(name) = frame.display_function_name() {
-                                        ui.label(name);
-                                    }
-                                    if let Some(line_entry) = frame.line_entry() {
-                                        ui.label(format!(
-                                            "{}:{}",
-                                            line_entry.filespec().filename(),
-                                            line_entry.line(),
-                                        ));
-                                    } else {
-                                        ui.label("");
-                                    }
-                                    ui.end_row();
+                ui.label("frames");
+                egui::Grid::new("frames")
+                    .num_columns(2)
+                    .striped(true)
+                    .show(ui, |ui| {
+                        let thread = process.selected_thread();
+                        for frame in thread.frames() {
+                            if !frame.is_valid() {
+                                continue;
+                            }
+                            let function = frame.function();
+                            if function.is_valid() {
+                                if ui
+                                    .selectable_value(
+                                        selected_frame_id,
+                                        frame.frame_id(),
+                                        function.display_name(),
+                                    )
+                                    .clicked()
+                                {
+                                    thread.set_selected_frame(frame.frame_id());
                                 }
-                            });
-                        ui.separator();
-                        ScrollArea::vertical()
-                            .id_source("variables")
-                            .show(ui, |ui| {
-                                ui.label("variables");
-                                let thread = process.selected_thread();
-                                let frame = thread.selected_frame();
-                                for v in frame.all_variables().iter() {
-                                    ui.label(v.name());
-                                }
-                            });
+                            } else if let Some(name) = frame.display_function_name() {
+                                ui.label(name);
+                            }
+                            if let Some(line_entry) = frame.line_entry() {
+                                ui.label(format!(
+                                    "{}:{}",
+                                    line_entry.filespec().filename(),
+                                    line_entry.line(),
+                                ));
+                            } else {
+                                ui.label("");
+                            }
+                            ui.end_row();
+                        }
                     });
+                ui.separator();
+                ui.horizontal(|ui| {
+                    ui.selectable_value(variables_tab, VariableTab::Locals, "locals");
+                    ui.selectable_value(variables_tab, VariableTab::Statics, "statics");
+                    ui.selectable_value(variables_tab, VariableTab::Arguments, "arguments");
+                    ui.selectable_value(variables_tab, VariableTab::Registers, "registers");
+                });
+                let thread = process.selected_thread();
+                let frame = thread.selected_frame();
+                ScrollArea::vertical().show(ui, |ui| match variables_tab {
+                    VariableTab::Locals => {
+                        render_values(ui, frame.locals().iter());
+                    }
+                    VariableTab::Statics => {
+                        render_values(ui, frame.statics().iter());
+                    }
+                    VariableTab::Arguments => {
+                        render_values(ui, frame.arguments().iter());
+                    }
+                    VariableTab::Registers => {
+                        render_values(ui, frame.registers().iter());
+                    }
                 });
             });
         TopBottomPanel::bottom("console_panel")
@@ -166,11 +191,40 @@ impl eframe::App for App {
                     ui.selectable_value(console_tab, ConsoleTab::Stdout, "stdout");
                     ui.selectable_value(console_tab, ConsoleTab::Stderr, "stderr");
                 });
-                ui.separator();
                 ui.label("foo");
             });
         CentralPanel::default().show(ctx, |ui| {
             ui.label("code");
         });
+    }
+}
+
+fn render_values(ui: &mut Ui, values: impl Iterator<Item = SBValue>) {
+    egui::Grid::new(ui.next_auto_id())
+        .num_columns(3)
+        .striped(true)
+        .show(ui, |ui| {
+            for v in values {
+                if v.children().count() > 0 {
+                    ui.collapsing(v.name().expect("name should be present"), |ui| {
+                        render_values(ui, v.children());
+                    });
+                } else {
+                    render_value(ui, &v);
+                }
+                ui.end_row();
+            }
+        });
+}
+
+fn render_value(ui: &mut Ui, value: &SBValue) {
+    if let Some(name) = value.name() {
+        ui.label(name);
+    }
+    if let Some(type_name) = value.display_type_name() {
+        ui.label(type_name);
+    }
+    if let Some(value) = value.value() {
+        ui.label(value);
     }
 }

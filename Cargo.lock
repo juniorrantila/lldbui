@@ -1746,8 +1746,7 @@ checksum = "b4ce301924b7887e9d637144fdade93f9dfff9b60981d4ac161db09720d39aa5"
 [[package]]
 name = "lldb"
 version = "0.0.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ead3acd21ea6f043804677c634f22261d5b573354f894fc9bf5a7c51b3494b2"
+source = "git+https://github.com/roccoblues/lldb.rs?branch=fix-value-fetch#f30e95358300c28bd375ac2ad325c0ac31603913"
 dependencies = [
  "libc",
  "lldb-sys",
@@ -1755,11 +1754,11 @@ dependencies = [
 
 [[package]]
 name = "lldb-sys"
-version = "0.0.29"
+version = "0.0.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4823992d90809c75bb025e9666759ccd7be2362863fc88af6c21ba6916e4e5f"
+checksum = "0b3b0f707f881bcd1ae0cd38e5b7e5d98459f0eea464db98f93b165fa68dcdec"
 dependencies = [
- "bitflags 1.3.2",
+ "bitflags 2.5.0",
  "cc",
  "libc",
 ]

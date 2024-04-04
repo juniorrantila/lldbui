@@ -9,3 +9,6 @@ egui = "0.27.0"
 eframe = "0.27.0"
 lldb = "0.0.11"
 clap = { version = "4.5.4", features = ["derive"] }
+
+[patch.crates-io]
+lldb = { git = 'https://github.com/roccoblues/lldb.rs', branch = 'fix-value-fetch'}
