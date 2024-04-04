@@ -96,7 +96,7 @@ impl eframe::App for App {
         // without polling the events process.state() never changes???
         let event = SBEvent::new();
         while debugger.listener().get_next_event(&event) {
-            println!("{:?}", event);
+            // println!("{:?}", event);
         }
 
         TopBottomPanel::bottom("bottom_panel")

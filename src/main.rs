@@ -1,11 +1,19 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 use clap::Parser;
-use lldb::{LaunchFlags, SBDebugger, SBLaunchInfo};
+use lldb::{LaunchFlags, SBAttachInfo, SBDebugger, SBLaunchInfo};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Cli {
-    target: String,
+    executable: Option<String>,
+
+    /// Tells the debugger to attach to a process with the given pid.
+    #[arg(short = 'p', long)]
+    attach_pid: Option<u64>,
+
+    /// Tells the debugger to attach to a process with the given name.
+    #[arg(short = 'n', long)]
+    attach_name: Option<String>,
 }
 
 fn main() -> eframe::Result<()> {
@@ -16,14 +24,26 @@ fn main() -> eframe::Result<()> {
     let debugger = SBDebugger::create(false);
     debugger.set_asynchronous(true);
 
-    let target = debugger
-        .create_target(&cli.target, None, None, false)
-        .unwrap();
-
-    let launch_info = SBLaunchInfo::new();
-    launch_info.set_launch_flags(LaunchFlags::STOP_AT_ENTRY);
-
-    target.launch(launch_info).unwrap();
+    let target = if let Some(executable) = cli.executable {
+        let target = debugger
+            .create_target(&executable, None, None, false)
+            .unwrap();
+        let launch_info = SBLaunchInfo::new();
+        launch_info.set_launch_flags(LaunchFlags::STOP_AT_ENTRY);
+        target.launch(launch_info).unwrap();
+        target
+    } else {
+        let target = debugger.create_target_simple("").unwrap();
+        let attach_info = if let Some(pid) = cli.attach_pid {
+            SBAttachInfo::new_with_pid(pid)
+        } else if let Some(name) = cli.attach_name {
+            SBAttachInfo::new_with_path(&name, true, false)
+        } else {
+            panic!("should not happen!")
+        };
+        target.attach(attach_info).unwrap();
+        target
+    };
 
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
