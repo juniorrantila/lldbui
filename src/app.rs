@@ -1,7 +1,11 @@
 use egui::{
     widgets, Align, CentralPanel, Layout, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui,
 };
+use egui_extras::syntax_highlighting::{code_view_ui, CodeTheme};
 use lldb::{SBDebugger, SBEvent, SBListener, SBProcess, SBTarget, SBThread, SBValue, StateType};
+use std::collections::HashMap;
+use std::fs::read_to_string;
+use std::path::PathBuf;
 
 #[derive(Debug, PartialEq)]
 enum ConsoleTab {
@@ -25,6 +29,7 @@ pub struct App {
     listener: SBListener,
     selected_thread_id: u64,
     selected_frame_id: u32,
+    sources: HashMap<PathBuf, String>,
 }
 
 impl App {
@@ -37,6 +42,7 @@ impl App {
             listener,
             selected_thread_id: 0,
             selected_frame_id: 0,
+            sources: HashMap::new(),
         }
     }
 }
@@ -50,6 +56,7 @@ impl eframe::App for App {
             listener,
             selected_thread_id,
             selected_frame_id,
+            sources,
         } = self;
 
         let process = target.process();
@@ -170,11 +177,13 @@ impl eframe::App for App {
                                 ui.label(frame.display_function_name().unwrap_or(""));
                             }
                             if let Some(line_entry) = frame.line_entry() {
-                                ui.label(format!(
-                                    "{}:{}",
+                                let path: PathBuf = [
+                                    line_entry.filespec().directory(),
                                     line_entry.filespec().filename(),
-                                    line_entry.line(),
-                                ));
+                                ]
+                                .iter()
+                                .collect();
+                                ui.label(format!("{}:{}", path.display(), line_entry.line(),));
                             } else {
                                 ui.label("");
                             }
@@ -216,7 +225,31 @@ impl eframe::App for App {
                 ui.label("foo");
             });
         CentralPanel::default().show(ctx, |ui| {
-            ui.label("code");
+            if let Some(line_entry) = frame.line_entry() {
+                let path: PathBuf = [
+                    line_entry.filespec().directory(),
+                    line_entry.filespec().filename(),
+                ]
+                .iter()
+                .collect();
+                ui.label(format!("path: {}", path.display()));
+
+                let fs = line_entry.filespec();
+                ui.label(format!("exists: {}", fs.exists()));
+
+                let compile_unit = frame.compile_unit();
+                ui.label(format!("Language: {:?}", compile_unit.language()));
+
+                let code = sources
+                    .entry(path.clone())
+                    .or_insert_with(|| read_to_string(&path).unwrap());
+
+                ScrollArea::vertical().show(ui, |ui| {
+                    ScrollArea::horizontal().show(ui, |ui| {
+                        code_view_ui(ui, &CodeTheme::from_style(ui.style()), &code, "C");
+                    });
+                });
+            }
         });
     }
 }
