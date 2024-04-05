@@ -40,6 +40,8 @@ pub struct App {
     selected_source: Option<String>,
     #[serde(skip)]
     source_language: HashMap<String, String>,
+    #[serde(skip)]
+    selected_line: u32,
 }
 
 impl Default for App {
@@ -53,6 +55,7 @@ impl Default for App {
             selected_source: None,
             sources: HashMap::new(),
             source_language: HashMap::new(),
+            selected_line: 0,
         }
     }
 }
@@ -266,6 +269,8 @@ impl eframe::App for App {
                                                                 self.source_language
                                                                     .insert(key.clone(), language);
                                                                 self.selected_source = Some(key);
+                                                                self.selected_line =
+                                                                    line_entry.line();
                                                             }
                                                         }
                                                     }
@@ -348,27 +353,44 @@ impl eframe::App for App {
             let theme = &CodeTheme::from_style(ui.style());
             ui.horizontal(|ui| {
                 for path in self.sources.keys() {
-                    ui.selectable_value(&mut self.selected_source, Some(path.to_string()), path);
+                    if ui
+                        .selectable_value(&mut self.selected_source, Some(path.to_string()), path)
+                        .clicked()
+                    {
+                        self.selected_line = 0;
+                    };
                 }
             });
+            ui.separator();
 
             if let Some(path) = &self.selected_source {
                 let language = self.source_language.get(path).unwrap();
                 let code = self.sources.get(path).unwrap();
-                ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
-                    ScrollArea::horizontal().auto_shrink(false).show(ui, |ui| {
-                        let mut i = 0;
-                        egui::Grid::new("source").num_columns(2).show(ui, |ui| {
-                            for line in code.lines() {
-                                i += 1;
-                                ui.label(format!("{}", i));
-                                let layout_job = highlight(ui.ctx(), theme, &line, &language);
-                                ui.add(egui::Label::new(layout_job).selectable(true));
-                                ui.end_row();
-                            }
-                        });
+                ScrollArea::horizontal()
+                    .id_source(path)
+                    .auto_shrink(false)
+                    .show(ui, |ui| {
+                        ScrollArea::vertical()
+                            .id_source(path)
+                            .auto_shrink(false)
+                            .show(ui, |ui| {
+                                let mut i = 0;
+                                egui::Grid::new("source").num_columns(2).show(ui, |ui| {
+                                    for line in code.lines() {
+                                        i += 1;
+                                        ui.label(format!("{}", i));
+                                        let layout_job =
+                                            highlight(ui.ctx(), theme, &line, &language);
+                                        let response =
+                                            ui.add(egui::Label::new(layout_job).selectable(true));
+                                        if i == self.selected_line {
+                                            response.scroll_to_me(Some(egui::Align::Center));
+                                        }
+                                        ui.end_row();
+                                    }
+                                });
+                            });
                     });
-                });
             }
         });
     }
