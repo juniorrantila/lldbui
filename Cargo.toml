@@ -13,4 +13,4 @@ egui_extras = { version = "0.27.2", features = ["syntect"] }
 serde = "1.0.197"
 
 [patch.crates-io]
-lldb = { git = 'https://github.com/roccoblues/lldb.rs', branch = 'fix-value-fetch'}
+lldb = { git = 'https://github.com/roccoblues/lldb.rs' }

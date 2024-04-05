@@ -3,7 +3,7 @@ use egui::{
     TopBottomPanel, Ui,
 };
 use egui_extras::syntax_highlighting::{highlight, CodeTheme};
-use lldb::{SBDebugger, SBEvent, SBTarget, SBValue};
+use lldb::{RunMode, SBDebugger, SBEvent, SBTarget, SBValue};
 use std::collections::HashMap;
 use std::fs::read_to_string;
 use std::path::PathBuf;
@@ -41,8 +41,6 @@ pub struct App {
     #[serde(skip)]
     source_language: HashMap<String, String>,
     #[serde(skip)]
-    selected_line: u32,
-    #[serde(skip)]
     scrolled: bool,
 }
 
@@ -57,7 +55,6 @@ impl Default for App {
             selected_source: None,
             sources: HashMap::new(),
             source_language: HashMap::new(),
-            selected_line: 0,
             scrolled: false,
         }
     }
@@ -82,9 +79,6 @@ impl eframe::App for App {
     }
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        if self.target.is_none() {
-            return;
-        }
         let debugger = self
             .target
             .as_ref()
@@ -101,16 +95,16 @@ impl eframe::App for App {
             .expect("target should be set")
             .executable();
 
+        // without polling the events process.state() never changes???
+        let event = SBEvent::new();
+        while debugger.listener().get_next_event(&event) {
+            println!("{:?}", event);
+        }
+
         let thread = process.selected_thread();
         let frame = thread.selected_frame();
         self.selected_thread_id = thread.thread_id();
         self.selected_frame_id = thread.selected_frame().frame_id();
-
-        // without polling the events process.state() never changes???
-        let event = SBEvent::new();
-        while debugger.listener().get_next_event(&event) {
-            // println!("{:?}", event);
-        }
 
         TopBottomPanel::bottom("bottom_panel")
             .resizable(true)
@@ -151,8 +145,16 @@ impl eframe::App for App {
                     if ui.button("Stop").clicked() {
                         process.stop().unwrap();
                     }
-                } else if process.is_stopped() && ui.button("Run").clicked() {
-                    process.continue_execution().unwrap();
+                } else if process.is_stopped() {
+                    if ui.button("Run").clicked() {
+                        process.continue_execution().unwrap();
+                    } else if ui.button("Step into").clicked() {
+                        thread.step_into(RunMode::OnlyDuringStepping).unwrap();
+                    } else if ui.button("Step over").clicked() {
+                        thread.step_over(RunMode::OnlyDuringStepping).unwrap();
+                    } else if ui.button("Step out").clicked() {
+                        thread.step_out().unwrap();
+                    }
                 }
             });
         SidePanel::right("right_panel")
@@ -222,66 +224,54 @@ impl eframe::App for App {
                                                 if !frame.is_valid() {
                                                     continue;
                                                 }
-                                                let function = frame.function();
                                                 let compile_unit = frame.compile_unit();
 
-                                                if function.is_valid() {
-                                                    if ui
-                                                        .selectable_value(
-                                                            &mut self.selected_frame_id,
-                                                            frame.frame_id(),
-                                                            function.display_name(),
-                                                        )
-                                                        .clicked()
-                                                    {
-                                                        thread.set_selected_frame(frame.frame_id());
+                                                if ui
+                                                    .selectable_value(
+                                                        &mut self.selected_frame_id,
+                                                        frame.frame_id(),
+                                                        frame.display_function_name().unwrap(),
+                                                    )
+                                                    .clicked()
+                                                {
+                                                    thread.set_selected_frame(frame.frame_id());
 
-                                                        if let Some(line_entry) = frame.line_entry()
-                                                        {
-                                                            // TODO: use proper mapping
-                                                            let mut language = format!(
-                                                                "{:?}",
-                                                                compile_unit.language()
+                                                    if let Some(line_entry) = frame.line_entry() {
+                                                        // TODO: use proper mapping
+                                                        let mut language = format!(
+                                                            "{:?}",
+                                                            compile_unit.language()
+                                                        );
+                                                        if language == "C99" || language == "C11" {
+                                                            language = "C".to_string();
+                                                        }
+
+                                                        let path: PathBuf = [
+                                                            line_entry.filespec().directory(),
+                                                            line_entry.filespec().filename(),
+                                                        ]
+                                                        .iter()
+                                                        .collect();
+
+                                                        let fs = line_entry.filespec();
+
+                                                        if fs.exists() {
+                                                            let key = path
+                                                                .clone()
+                                                                .into_os_string()
+                                                                .into_string()
+                                                                .unwrap();
+
+                                                            self.sources.insert(
+                                                                key.clone(),
+                                                                read_to_string(&path).unwrap(),
                                                             );
-                                                            if language == "C99"
-                                                                || language == "C11"
-                                                            {
-                                                                language = "C".to_string();
-                                                            }
-
-                                                            let path: PathBuf = [
-                                                                line_entry.filespec().directory(),
-                                                                line_entry.filespec().filename(),
-                                                            ]
-                                                            .iter()
-                                                            .collect();
-
-                                                            let fs = line_entry.filespec();
-
-                                                            if fs.exists() {
-                                                                let key = path
-                                                                    .clone()
-                                                                    .into_os_string()
-                                                                    .into_string()
-                                                                    .unwrap();
-
-                                                                self.sources.insert(
-                                                                    key.clone(),
-                                                                    read_to_string(&path).unwrap(),
-                                                                );
-                                                                self.source_language
-                                                                    .insert(key.clone(), language);
-                                                                self.selected_source = Some(key);
-                                                                self.selected_line =
-                                                                    line_entry.line();
-                                                                self.scrolled = false;
-                                                            }
+                                                            self.source_language
+                                                                .insert(key.clone(), language);
+                                                            self.selected_source = Some(key);
+                                                            self.scrolled = false;
                                                         }
                                                     }
-                                                } else {
-                                                    ui.label(
-                                                        frame.display_function_name().unwrap_or(""),
-                                                    );
                                                 }
                                                 if let Some(line_entry) = frame.line_entry() {
                                                     let path: PathBuf = [
@@ -370,6 +360,11 @@ impl eframe::App for App {
             if let Some(path) = &self.selected_source {
                 let language = self.source_language.get(path).unwrap();
                 let code = self.sources.get(path).unwrap();
+                let highlighted_line = if let Some(line_entry) = frame.line_entry() {
+                    line_entry.line()
+                } else {
+                    0
+                };
                 ScrollArea::horizontal()
                     .id_source(path)
                     .auto_shrink(false)
@@ -382,7 +377,7 @@ impl eframe::App for App {
                                 egui::Grid::new("source").num_columns(3).show(ui, |ui| {
                                     for line in code.lines() {
                                         i += 1;
-                                        if i == self.selected_line {
+                                        if i == highlighted_line {
                                             ui.label(
                                                 RichText::new("→")
                                                     .monospace()
@@ -393,7 +388,7 @@ impl eframe::App for App {
                                         }
                                         let mut line_number =
                                             RichText::new(format!("{}", i)).monospace();
-                                        if i == self.selected_line {
+                                        if i == highlighted_line {
                                             line_number = line_number.color(egui::Color32::YELLOW);
                                         }
                                         ui.label(line_number);
@@ -401,7 +396,7 @@ impl eframe::App for App {
                                             highlight(ui.ctx(), theme, &line, &language);
                                         let response =
                                             ui.add(egui::Label::new(layout_job).selectable(true));
-                                        if !self.scrolled && i == self.selected_line {
+                                        if !self.scrolled && i == highlighted_line {
                                             response.scroll_to_me(Some(egui::Align::Center));
                                             self.scrolled = true;
                                         }
