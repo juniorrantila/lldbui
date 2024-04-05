@@ -2,7 +2,7 @@ use egui::{
     widgets, Align, CentralPanel, CollapsingHeader, Layout, RichText, ScrollArea, SidePanel,
     TopBottomPanel, Ui,
 };
-use egui_extras::syntax_highlighting::{code_view_ui, CodeTheme};
+use egui_extras::syntax_highlighting::{highlight, CodeTheme};
 use lldb::{SBDebugger, SBEvent, SBTarget, SBValue};
 use std::collections::HashMap;
 use std::fs::read_to_string;
@@ -35,7 +35,11 @@ pub struct App {
     #[serde(skip)]
     selected_frame_id: u32,
     #[serde(skip)]
-    sources: HashMap<PathBuf, String>,
+    sources: HashMap<String, String>,
+    #[serde(skip)]
+    selected_source: Option<String>,
+    #[serde(skip)]
+    source_language: HashMap<String, String>,
 }
 
 impl Default for App {
@@ -46,7 +50,9 @@ impl Default for App {
             target: None,
             selected_thread_id: 0,
             selected_frame_id: 0,
+            selected_source: None,
             sources: HashMap::new(),
+            source_language: HashMap::new(),
         }
     }
 }
@@ -211,6 +217,8 @@ impl eframe::App for App {
                                                     continue;
                                                 }
                                                 let function = frame.function();
+                                                let compile_unit = frame.compile_unit();
+
                                                 if function.is_valid() {
                                                     if ui
                                                         .selectable_value(
@@ -221,6 +229,45 @@ impl eframe::App for App {
                                                         .clicked()
                                                     {
                                                         thread.set_selected_frame(frame.frame_id());
+
+                                                        if let Some(line_entry) = frame.line_entry()
+                                                        {
+                                                            // TODO: use proper mapping
+                                                            let mut language = format!(
+                                                                "{:?}",
+                                                                compile_unit.language()
+                                                            );
+                                                            if language == "C99"
+                                                                || language == "C11"
+                                                            {
+                                                                language = "C".to_string();
+                                                            }
+
+                                                            let path: PathBuf = [
+                                                                line_entry.filespec().directory(),
+                                                                line_entry.filespec().filename(),
+                                                            ]
+                                                            .iter()
+                                                            .collect();
+
+                                                            let fs = line_entry.filespec();
+
+                                                            if fs.exists() {
+                                                                let key = path
+                                                                    .clone()
+                                                                    .into_os_string()
+                                                                    .into_string()
+                                                                    .unwrap();
+
+                                                                self.sources.insert(
+                                                                    key.clone(),
+                                                                    read_to_string(&path).unwrap(),
+                                                                );
+                                                                self.source_language
+                                                                    .insert(key.clone(), language);
+                                                                self.selected_source = Some(key);
+                                                            }
+                                                        }
                                                     }
                                                 } else {
                                                     ui.label(
@@ -298,38 +345,30 @@ impl eframe::App for App {
                 ui.label("foo");
             });
         CentralPanel::default().show(ctx, |ui| {
-            if let Some(line_entry) = frame.line_entry() {
-                let path: PathBuf = [
-                    line_entry.filespec().directory(),
-                    line_entry.filespec().filename(),
-                ]
-                .iter()
-                .collect();
-                ui.label(format!("path: {}", path.display()));
+            let theme = &CodeTheme::from_style(ui.style());
+            ui.horizontal(|ui| {
+                for path in self.sources.keys() {
+                    ui.selectable_value(&mut self.selected_source, Some(path.to_string()), path);
+                }
+            });
 
-                let compile_unit = frame.compile_unit();
-                ui.label(format!("Language: {:?}", compile_unit.language()));
-
-                let fs = line_entry.filespec();
-                ui.label(format!("exists: {}", fs.exists()));
-
-                if fs.exists() {
-                    let code = self
-                        .sources
-                        .entry(path.clone())
-                        .or_insert_with(|| read_to_string(&path).unwrap());
-
-                    ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
-                        ScrollArea::horizontal().auto_shrink(false).show(ui, |ui| {
-                            // TODO: use proper mapping
-                            let mut language = format!("{:?}", compile_unit.language());
-                            if language == "C99" || language == "C11" {
-                                language = "C".to_string();
+            if let Some(path) = &self.selected_source {
+                let language = self.source_language.get(path).unwrap();
+                let code = self.sources.get(path).unwrap();
+                ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
+                    ScrollArea::horizontal().auto_shrink(false).show(ui, |ui| {
+                        let mut i = 0;
+                        egui::Grid::new("source").num_columns(2).show(ui, |ui| {
+                            for line in code.lines() {
+                                i += 1;
+                                ui.label(format!("{}", i));
+                                let layout_job = highlight(ui.ctx(), theme, &line, &language);
+                                ui.add(egui::Label::new(layout_job).selectable(true));
+                                ui.end_row();
                             }
-                            code_view_ui(ui, &CodeTheme::from_style(ui.style()), code, &language);
                         });
                     });
-                }
+                });
             }
         });
     }
