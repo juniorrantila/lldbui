@@ -89,9 +89,6 @@ impl eframe::App for App {
             println!("{:?}", event);
         }
 
-        let thread = process.selected_thread();
-        let frame = thread.selected_frame();
-
         TopBottomPanel::bottom("bottom_panel")
             .resizable(true)
             .show(ctx, |ui| {
@@ -132,14 +129,19 @@ impl eframe::App for App {
                         process.stop().unwrap();
                     }
                 } else if process.is_stopped() {
+                    let thread = process.selected_thread();
                     if ui.button("Run").clicked() {
                         process.continue_execution().unwrap();
+                        self.scrolled = false;
                     } else if ui.button("Step into").clicked() {
                         thread.step_into(RunMode::OnlyDuringStepping).unwrap();
+                        self.scrolled = false;
                     } else if ui.button("Step over").clicked() {
                         thread.step_over(RunMode::OnlyDuringStepping).unwrap();
+                        self.scrolled = false;
                     } else if ui.button("Step out").clicked() {
                         thread.step_out().unwrap();
+                        self.scrolled = false;
                     }
                 }
             });
@@ -160,7 +162,8 @@ impl eframe::App for App {
                                     .num_columns(1)
                                     .striped(true)
                                     .show(ui, |ui| {
-                                        let mut selected_thread_id = thread.thread_id();
+                                        let mut selected_thread_id =
+                                            process.selected_thread().thread_id();
                                         for thread in process.threads() {
                                             if !thread.is_valid() {
                                                 continue;
@@ -207,6 +210,7 @@ impl eframe::App for App {
                                     egui::Grid::new("frames").num_columns(2).striped(true).show(
                                         ui,
                                         |ui| {
+                                            let thread = process.selected_thread();
                                             let mut selected_frame_id =
                                                 thread.selected_frame().frame_id();
                                             for frame in thread.frames() {
@@ -223,6 +227,7 @@ impl eframe::App for App {
                                                     .clicked()
                                                 {
                                                     thread.set_selected_frame(frame.frame_id());
+                                                    self.scrolled = false;
                                                 }
                                                 if let Some(line_entry) = frame.line_entry() {
                                                     let path: PathBuf = [
@@ -266,18 +271,21 @@ impl eframe::App for App {
                     ScrollArea::vertical()
                         .id_source("variables")
                         .auto_shrink(false)
-                        .show(ui, |ui| match self.variables_tab {
-                            VariableTab::Locals => {
-                                render_values(ui, frame.locals().iter());
-                            }
-                            VariableTab::Statics => {
-                                render_values(ui, frame.statics().iter());
-                            }
-                            VariableTab::Arguments => {
-                                render_values(ui, frame.arguments().iter());
-                            }
-                            VariableTab::Registers => {
-                                render_values(ui, frame.registers().iter());
+                        .show(ui, |ui| {
+                            let frame = process.selected_thread().selected_frame();
+                            match self.variables_tab {
+                                VariableTab::Locals => {
+                                    render_values(ui, frame.locals().iter());
+                                }
+                                VariableTab::Statics => {
+                                    render_values(ui, frame.statics().iter());
+                                }
+                                VariableTab::Arguments => {
+                                    render_values(ui, frame.arguments().iter());
+                                }
+                                VariableTab::Registers => {
+                                    render_values(ui, frame.registers().iter());
+                                }
                             }
                         });
                 });
@@ -293,6 +301,7 @@ impl eframe::App for App {
                 ui.label("foo");
             });
         CentralPanel::default().show(ctx, |ui| {
+            let frame = process.selected_thread().selected_frame();
             if let Some(line_entry) = frame.line_entry() {
                 let path: PathBuf = [
                     line_entry.filespec().directory(),
