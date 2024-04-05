@@ -1,5 +1,6 @@
 use egui::{
-    widgets, Align, CentralPanel, Layout, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui,
+    widgets, Align, CentralPanel, CollapsingHeader, Layout, RichText, ScrollArea, SidePanel,
+    TopBottomPanel, Ui,
 };
 use egui_extras::syntax_highlighting::{code_view_ui, CodeTheme};
 use lldb::{SBDebugger, SBEvent, SBTarget, SBValue};
@@ -201,49 +202,51 @@ impl eframe::App for App {
                             .id_source("frames")
                             .auto_shrink(false)
                             .show(ui, |ui| {
-                                egui::Grid::new("frames").num_columns(2).striped(true).show(
-                                    ui,
-                                    |ui| {
-                                        for frame in thread.frames() {
-                                            if !frame.is_valid() {
-                                                continue;
-                                            }
-                                            let function = frame.function();
-                                            if function.is_valid() {
-                                                if ui
-                                                    .selectable_value(
-                                                        &mut self.selected_frame_id,
-                                                        frame.frame_id(),
-                                                        function.display_name(),
-                                                    )
-                                                    .clicked()
-                                                {
-                                                    thread.set_selected_frame(frame.frame_id());
+                                ScrollArea::horizontal().auto_shrink(false).show(ui, |ui| {
+                                    egui::Grid::new("frames").num_columns(2).striped(true).show(
+                                        ui,
+                                        |ui| {
+                                            for frame in thread.frames() {
+                                                if !frame.is_valid() {
+                                                    continue;
                                                 }
-                                            } else {
-                                                ui.label(
-                                                    frame.display_function_name().unwrap_or(""),
-                                                );
+                                                let function = frame.function();
+                                                if function.is_valid() {
+                                                    if ui
+                                                        .selectable_value(
+                                                            &mut self.selected_frame_id,
+                                                            frame.frame_id(),
+                                                            function.display_name(),
+                                                        )
+                                                        .clicked()
+                                                    {
+                                                        thread.set_selected_frame(frame.frame_id());
+                                                    }
+                                                } else {
+                                                    ui.label(
+                                                        frame.display_function_name().unwrap_or(""),
+                                                    );
+                                                }
+                                                if let Some(line_entry) = frame.line_entry() {
+                                                    let path: PathBuf = [
+                                                        line_entry.filespec().directory(),
+                                                        line_entry.filespec().filename(),
+                                                    ]
+                                                    .iter()
+                                                    .collect();
+                                                    ui.label(format!(
+                                                        "{}:{}",
+                                                        path.display(),
+                                                        line_entry.line(),
+                                                    ));
+                                                } else {
+                                                    ui.label("");
+                                                }
+                                                ui.end_row();
                                             }
-                                            if let Some(line_entry) = frame.line_entry() {
-                                                let path: PathBuf = [
-                                                    line_entry.filespec().directory(),
-                                                    line_entry.filespec().filename(),
-                                                ]
-                                                .iter()
-                                                .collect();
-                                                ui.label(format!(
-                                                    "{}:{}",
-                                                    path.display(),
-                                                    line_entry.line(),
-                                                ));
-                                            } else {
-                                                ui.label("");
-                                            }
-                                            ui.end_row();
-                                        }
-                                    },
-                                );
+                                        },
+                                    );
+                                });
                             });
                     });
                 CentralPanel::default().show_inside(ui, |ui| {
@@ -304,22 +307,29 @@ impl eframe::App for App {
                 .collect();
                 ui.label(format!("path: {}", path.display()));
 
-                let fs = line_entry.filespec();
-                ui.label(format!("exists: {}", fs.exists()));
-
                 let compile_unit = frame.compile_unit();
                 ui.label(format!("Language: {:?}", compile_unit.language()));
 
-                let code = self
-                    .sources
-                    .entry(path.clone())
-                    .or_insert_with(|| read_to_string(&path).unwrap());
+                let fs = line_entry.filespec();
+                ui.label(format!("exists: {}", fs.exists()));
 
-                ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
-                    ScrollArea::horizontal().auto_shrink(false).show(ui, |ui| {
-                        code_view_ui(ui, &CodeTheme::from_style(ui.style()), code, "C");
+                if fs.exists() {
+                    let code = self
+                        .sources
+                        .entry(path.clone())
+                        .or_insert_with(|| read_to_string(&path).unwrap());
+
+                    ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
+                        ScrollArea::horizontal().auto_shrink(false).show(ui, |ui| {
+                            // TODO: use proper mapping
+                            let mut language = format!("{:?}", compile_unit.language());
+                            if language == "C99" || language == "C11" {
+                                language = "C".to_string();
+                            }
+                            code_view_ui(ui, &CodeTheme::from_style(ui.style()), code, &language);
+                        });
                     });
-                });
+                }
             }
         });
     }
@@ -332,9 +342,11 @@ fn render_values(ui: &mut Ui, values: impl Iterator<Item = SBValue>) {
         .show(ui, |ui| {
             for v in values {
                 if v.children().count() > 0 {
-                    ui.collapsing(v.name().expect("name should be present"), |ui| {
-                        render_values(ui, v.children());
-                    });
+                    CollapsingHeader::new(v.name().expect("name should be present"))
+                        .id_source(ui.next_auto_id())
+                        .show(ui, |ui| {
+                            render_values(ui, v.children());
+                        });
                 } else {
                     render_value(ui, &v);
                 }

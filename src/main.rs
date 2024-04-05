@@ -1,9 +1,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
-use clap::Parser;
+use clap::{ArgGroup, Parser};
 use lldb::{LaunchFlags, SBAttachInfo, SBDebugger, SBLaunchInfo};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
+#[clap(group(
+    ArgGroup::new("target").required(true).args(&["executable", "attach_pid", "attach_name"]),
+))]
 struct Cli {
     executable: Option<String>,
 
