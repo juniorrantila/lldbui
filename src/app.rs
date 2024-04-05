@@ -31,15 +31,7 @@ pub struct App {
     #[serde(skip)]
     target: Option<SBTarget>,
     #[serde(skip)]
-    selected_thread_id: u64,
-    #[serde(skip)]
-    selected_frame_id: u32,
-    #[serde(skip)]
-    sources: HashMap<String, String>,
-    #[serde(skip)]
-    selected_source: Option<String>,
-    #[serde(skip)]
-    source_language: HashMap<String, String>,
+    source_cache: HashMap<String, String>,
     #[serde(skip)]
     scrolled: bool,
 }
@@ -47,14 +39,10 @@ pub struct App {
 impl Default for App {
     fn default() -> Self {
         Self {
+            target: None,
             console_tab: ConsoleTab::Console,
             variables_tab: VariableTab::Locals,
-            target: None,
-            selected_thread_id: 0,
-            selected_frame_id: 0,
-            selected_source: None,
-            sources: HashMap::new(),
-            source_language: HashMap::new(),
+            source_cache: HashMap::new(),
             scrolled: false,
         }
     }
@@ -103,8 +91,6 @@ impl eframe::App for App {
 
         let thread = process.selected_thread();
         let frame = thread.selected_frame();
-        self.selected_thread_id = thread.thread_id();
-        self.selected_frame_id = thread.selected_frame().frame_id();
 
         TopBottomPanel::bottom("bottom_panel")
             .resizable(true)
@@ -174,6 +160,7 @@ impl eframe::App for App {
                                     .num_columns(1)
                                     .striped(true)
                                     .show(ui, |ui| {
+                                        let mut selected_thread_id = thread.thread_id();
                                         for thread in process.threads() {
                                             if !thread.is_valid() {
                                                 continue;
@@ -194,7 +181,7 @@ impl eframe::App for App {
                                             }
                                             if ui
                                                 .selectable_value(
-                                                    &mut self.selected_thread_id,
+                                                    &mut selected_thread_id,
                                                     thread.thread_id(),
                                                     label,
                                                 )
@@ -220,58 +207,22 @@ impl eframe::App for App {
                                     egui::Grid::new("frames").num_columns(2).striped(true).show(
                                         ui,
                                         |ui| {
+                                            let mut selected_frame_id =
+                                                thread.selected_frame().frame_id();
                                             for frame in thread.frames() {
                                                 if !frame.is_valid() {
                                                     continue;
                                                 }
-                                                let compile_unit = frame.compile_unit();
 
                                                 if ui
                                                     .selectable_value(
-                                                        &mut self.selected_frame_id,
+                                                        &mut selected_frame_id,
                                                         frame.frame_id(),
                                                         frame.display_function_name().unwrap(),
                                                     )
                                                     .clicked()
                                                 {
                                                     thread.set_selected_frame(frame.frame_id());
-
-                                                    if let Some(line_entry) = frame.line_entry() {
-                                                        // TODO: use proper mapping
-                                                        let mut language = format!(
-                                                            "{:?}",
-                                                            compile_unit.language()
-                                                        );
-                                                        if language == "C99" || language == "C11" {
-                                                            language = "C".to_string();
-                                                        }
-
-                                                        let path: PathBuf = [
-                                                            line_entry.filespec().directory(),
-                                                            line_entry.filespec().filename(),
-                                                        ]
-                                                        .iter()
-                                                        .collect();
-
-                                                        let fs = line_entry.filespec();
-
-                                                        if fs.exists() {
-                                                            let key = path
-                                                                .clone()
-                                                                .into_os_string()
-                                                                .into_string()
-                                                                .unwrap();
-
-                                                            self.sources.insert(
-                                                                key.clone(),
-                                                                read_to_string(&path).unwrap(),
-                                                            );
-                                                            self.source_language
-                                                                .insert(key.clone(), language);
-                                                            self.selected_source = Some(key);
-                                                            self.scrolled = false;
-                                                        }
-                                                    }
                                                 }
                                                 if let Some(line_entry) = frame.line_entry() {
                                                     let path: PathBuf = [
@@ -285,8 +236,6 @@ impl eframe::App for App {
                                                         path.display(),
                                                         line_entry.line(),
                                                     ));
-                                                } else {
-                                                    ui.label("");
                                                 }
                                                 ui.end_row();
                                             }
@@ -344,29 +293,45 @@ impl eframe::App for App {
                 ui.label("foo");
             });
         CentralPanel::default().show(ctx, |ui| {
-            let theme = &CodeTheme::from_style(ui.style());
-            ui.horizontal(|ui| {
-                for path in self.sources.keys() {
-                    if ui
-                        .selectable_value(&mut self.selected_source, Some(path.to_string()), path)
-                        .clicked()
-                    {
-                        self.scrolled = true;
-                    };
-                }
-            });
-            ui.separator();
+            if let Some(line_entry) = frame.line_entry() {
+                let path: PathBuf = [
+                    line_entry.filespec().directory(),
+                    line_entry.filespec().filename(),
+                ]
+                .iter()
+                .collect();
 
-            if let Some(path) = &self.selected_source {
-                let language = self.source_language.get(path).unwrap();
-                let code = self.sources.get(path).unwrap();
+                let key = path.clone().into_os_string().into_string().unwrap();
+
+                let fs = line_entry.filespec();
+                let source = if fs.exists() {
+                    self.source_cache
+                        .entry(key.clone())
+                        .or_insert(read_to_string(&path).unwrap())
+                } else {
+                    ""
+                };
+
+                ui.label(&key);
+                ui.separator();
+
+                // TODO: use proper mapping
+                let compile_unit = frame.compile_unit();
+                let mut language = format!("{:?}", compile_unit.language());
+                if language == "C99" || language == "C11" {
+                    language = "C".to_string();
+                }
+
                 let highlighted_line = if let Some(line_entry) = frame.line_entry() {
                     line_entry.line()
                 } else {
                     0
                 };
+
+                let theme = &CodeTheme::from_style(ui.style());
+
                 ScrollArea::horizontal()
-                    .id_source(path)
+                    .id_source(&key)
                     .auto_shrink(false)
                     .show(ui, |ui| {
                         ScrollArea::vertical()
@@ -375,7 +340,7 @@ impl eframe::App for App {
                             .show(ui, |ui| {
                                 let mut i = 0;
                                 egui::Grid::new("source").num_columns(3).show(ui, |ui| {
-                                    for line in code.lines() {
+                                    for line in source.lines() {
                                         i += 1;
                                         if i == highlighted_line {
                                             ui.label(
