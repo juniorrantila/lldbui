@@ -42,6 +42,8 @@ pub struct App {
     source_language: HashMap<String, String>,
     #[serde(skip)]
     selected_line: u32,
+    #[serde(skip)]
+    scrolled: bool,
 }
 
 impl Default for App {
@@ -56,6 +58,7 @@ impl Default for App {
             sources: HashMap::new(),
             source_language: HashMap::new(),
             selected_line: 0,
+            scrolled: false,
         }
     }
 }
@@ -271,6 +274,7 @@ impl eframe::App for App {
                                                                 self.selected_source = Some(key);
                                                                 self.selected_line =
                                                                     line_entry.line();
+                                                                self.scrolled = false;
                                                             }
                                                         }
                                                     }
@@ -357,7 +361,7 @@ impl eframe::App for App {
                         .selectable_value(&mut self.selected_source, Some(path.to_string()), path)
                         .clicked()
                     {
-                        self.selected_line = 0;
+                        self.scrolled = true;
                     };
                 }
             });
@@ -375,16 +379,31 @@ impl eframe::App for App {
                             .auto_shrink(false)
                             .show(ui, |ui| {
                                 let mut i = 0;
-                                egui::Grid::new("source").num_columns(2).show(ui, |ui| {
+                                egui::Grid::new("source").num_columns(3).show(ui, |ui| {
                                     for line in code.lines() {
                                         i += 1;
-                                        ui.label(format!("{}", i));
+                                        if i == self.selected_line {
+                                            ui.label(
+                                                RichText::new("→")
+                                                    .monospace()
+                                                    .color(egui::Color32::YELLOW),
+                                            );
+                                        } else {
+                                            ui.label("");
+                                        }
+                                        let mut line_number =
+                                            RichText::new(format!("{}", i)).monospace();
+                                        if i == self.selected_line {
+                                            line_number = line_number.color(egui::Color32::YELLOW);
+                                        }
+                                        ui.label(line_number);
                                         let layout_job =
                                             highlight(ui.ctx(), theme, &line, &language);
                                         let response =
                                             ui.add(egui::Label::new(layout_job).selectable(true));
-                                        if i == self.selected_line {
+                                        if !self.scrolled && i == self.selected_line {
                                             response.scroll_to_me(Some(egui::Align::Center));
+                                            self.scrolled = true;
                                         }
                                         ui.end_row();
                                     }
