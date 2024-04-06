@@ -4,9 +4,11 @@ use egui::{
 };
 use egui_extras::syntax_highlighting::{highlight, CodeTheme};
 use lldb::{RunMode, SBDebugger, SBEvent, SBTarget, SBValue};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::fs::read_to_string;
 use std::path::PathBuf;
+
+const SCROLLBACK_BUFFER: usize = 100;
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, PartialEq)]
 enum ConsoleTab {
@@ -34,6 +36,8 @@ pub struct App {
     source_cache: HashMap<String, String>,
     #[serde(skip)]
     scrolled: bool,
+    #[serde(skip)]
+    stdout: VecDeque<String>,
 }
 
 impl Default for App {
@@ -44,6 +48,7 @@ impl Default for App {
             variables_tab: VariableTab::Locals,
             source_cache: HashMap::new(),
             scrolled: false,
+            stdout: VecDeque::new(),
         }
     }
 }
@@ -87,6 +92,13 @@ impl eframe::App for App {
         let event = SBEvent::new();
         while debugger.listener().get_next_event(&event) {
             println!("{:?}", event);
+        }
+
+        if let Some(output) = process.get_stdout_all() {
+            for line in output.lines() {
+                self.stdout.push_front(line.to_string());
+                self.stdout.truncate(SCROLLBACK_BUFFER);
+            }
         }
 
         TopBottomPanel::bottom("bottom_panel")
@@ -298,7 +310,30 @@ impl eframe::App for App {
                     ui.selectable_value(&mut self.console_tab, ConsoleTab::Stdout, "stdout");
                     ui.selectable_value(&mut self.console_tab, ConsoleTab::Stderr, "stderr");
                 });
-                ui.label("foo");
+                match self.console_tab {
+                    ConsoleTab::Console => {
+                        ui.label("TODO");
+                    }
+                    ConsoleTab::Stdout => {
+                        ScrollArea::horizontal()
+                            .id_source(ui.next_auto_id())
+                            .auto_shrink(false)
+                            .show(ui, |ui| {
+                                ScrollArea::vertical()
+                                    .id_source(ui.next_auto_id())
+                                    .auto_shrink(false)
+                                    .show(ui, |ui| {
+                                        for line in &self.stdout {
+                                            ui.label(line);
+                                        }
+                                    });
+                                ui.scroll_to_cursor(Some(Align::BOTTOM));
+                            });
+                    }
+                    ConsoleTab::Stderr => {
+                        ui.label("TODO");
+                    }
+                }
             });
         CentralPanel::default().show(ctx, |ui| {
             let frame = process.selected_thread().selected_frame();
