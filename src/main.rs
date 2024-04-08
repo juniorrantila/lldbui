@@ -26,14 +26,9 @@ struct Cli {
 fn main() -> eframe::Result<()> {
     let cli = Cli::parse();
 
-    // lldb redirects stdout/stderr to the same file descriptor.
-    // We create two tempfiles to get them separate .
-    let stdout = NamedTempFile::new().unwrap().path().to_owned();
-    let stderr = NamedTempFile::new().unwrap().path().to_owned();
-
     SBDebugger::initialize();
     let debugger = SBDebugger::create(false);
-    // debugger.enable_log("lldb", &["default"]);
+    debugger.enable_log("lldb", &["default"]);
     debugger.set_asynchronous(true);
 
     let target = if let Some(executable) = cli.executable {
@@ -42,18 +37,6 @@ fn main() -> eframe::Result<()> {
             .unwrap();
         let launch_info = SBLaunchInfo::new();
         launch_info.set_launch_flags(LaunchFlags::STOP_AT_ENTRY);
-        launch_info.add_open_file_action(
-            std::io::stdout().as_raw_fd(),
-            stdout.to_str().expect("path should be present"),
-            false,
-            true,
-        );
-        launch_info.add_open_file_action(
-            std::io::stderr().as_raw_fd(),
-            stderr.to_str().expect("path should be present"),
-            false,
-            true,
-        );
         target.launch(launch_info).unwrap();
         target
     } else {
@@ -79,7 +62,7 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "lldbui",
         native_options,
-        Box::new(|cc| Box::new(lldbui::App::new(cc, target, stdout, stderr))),
+        Box::new(|cc| Box::new(lldbui::App::new(cc, target))),
     )?;
 
     SBDebugger::terminate();

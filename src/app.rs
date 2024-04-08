@@ -36,17 +36,9 @@ pub struct App {
     #[serde(skip)]
     scrolled: bool,
     #[serde(skip)]
-    stdout: Option<File>,
+    stdout: String,
     #[serde(skip)]
-    stdout_buffer: Vec<u8>,
-    #[serde(skip)]
-    stdout_position: usize,
-    #[serde(skip)]
-    stderr: Option<File>,
-    #[serde(skip)]
-    stderr_buffer: Vec<u8>,
-    #[serde(skip)]
-    stderr_position: usize,
+    stderr: String,
 }
 
 impl Default for App {
@@ -57,23 +49,14 @@ impl Default for App {
             variables_tab: VariableTab::Locals,
             source_cache: HashMap::new(),
             scrolled: false,
-            stdout: None,
-            stdout_buffer: Vec::new(),
-            stdout_position: 0,
-            stderr: None,
-            stderr_buffer: Vec::new(),
-            stderr_position: 0,
+            stdout: String::new(),
+            stderr: String::new(),
         }
     }
 }
 
 impl App {
-    pub fn new(
-        cc: &eframe::CreationContext<'_>,
-        target: SBTarget,
-        stdout: PathBuf,
-        stderr: PathBuf,
-    ) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>, target: SBTarget) -> Self {
         let mut app = if let Some(storage) = cc.storage {
             eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default()
         } else {
@@ -81,8 +64,6 @@ impl App {
         };
 
         app.target = Some(target);
-        app.stdout = Some(File::open(stdout).unwrap());
-        app.stderr = Some(File::open(stderr).unwrap());
         app
     }
 }
@@ -112,27 +93,14 @@ impl eframe::App for App {
         // without polling the events process.state() never changes???
         let event = SBEvent::new();
         while debugger.listener().get_next_event(&event) {
-            // println!("{:?}", event);
+            println!("{:?}", event);
         }
 
-        if let Some(stdout) = &mut self.stdout {
-            // TODO(ds): debugee's stdout is probably unbuffered, find a way
-            //           to flush it
-            stdout
-                .seek(std::io::SeekFrom::Start(
-                    self.stdout_position.try_into().unwrap(),
-                ))
-                .unwrap();
-            self.stdout_position += stdout.read_to_end(&mut self.stdout_buffer).unwrap();
+        if let Some(output) = process.get_stdout_all() {
+            self.stdout.push_str(&output);
         }
-
-        if let Some(stderr) = &mut self.stderr {
-            stderr
-                .seek(std::io::SeekFrom::Start(
-                    self.stderr_position.try_into().unwrap(),
-                ))
-                .unwrap();
-            self.stderr_position += stderr.read_to_end(&mut self.stderr_buffer).unwrap();
+        if let Some(output) = process.get_stderr_all() {
+            self.stderr.push_str(&output);
         }
 
         TopBottomPanel::bottom("bottom_panel")
@@ -357,7 +325,7 @@ impl eframe::App for App {
                                     .id_source(ui.next_auto_id())
                                     .auto_shrink(false)
                                     .show(ui, |ui| {
-                                        ui.label(std::str::from_utf8(&self.stdout_buffer).unwrap());
+                                        ui.label(&self.stdout);
                                     });
                                 ui.scroll_to_cursor(Some(Align::BOTTOM));
                             });
@@ -371,7 +339,7 @@ impl eframe::App for App {
                                     .id_source(ui.next_auto_id())
                                     .auto_shrink(false)
                                     .show(ui, |ui| {
-                                        ui.label(std::str::from_utf8(&self.stderr_buffer).unwrap());
+                                        ui.label(&self.stderr);
                                     });
                                 ui.scroll_to_cursor(Some(Align::BOTTOM));
                             });
