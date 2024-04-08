@@ -3,12 +3,11 @@ use egui::{
     TopBottomPanel, Ui,
 };
 use egui_extras::syntax_highlighting::{highlight, CodeTheme};
-use lldb::{RunMode, SBDebugger, SBEvent, SBTarget, SBValue};
-use std::collections::{HashMap, VecDeque};
-use std::fs::read_to_string;
+use lldb::{RunMode, SBDebugger, SBEvent, SBExpressionOptions, SBTarget, SBValue};
+use std::collections::HashMap;
+use std::fs::{read_to_string, File};
+use std::io::{Read, Seek};
 use std::path::PathBuf;
-
-const SCROLLBACK_BUFFER: usize = 100;
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, PartialEq)]
 enum ConsoleTab {
@@ -37,7 +36,17 @@ pub struct App {
     #[serde(skip)]
     scrolled: bool,
     #[serde(skip)]
-    stdout: VecDeque<String>,
+    stdout: Option<File>,
+    #[serde(skip)]
+    stdout_buffer: Vec<u8>,
+    #[serde(skip)]
+    stdout_position: usize,
+    #[serde(skip)]
+    stderr: Option<File>,
+    #[serde(skip)]
+    stderr_buffer: Vec<u8>,
+    #[serde(skip)]
+    stderr_position: usize,
 }
 
 impl Default for App {
@@ -48,13 +57,23 @@ impl Default for App {
             variables_tab: VariableTab::Locals,
             source_cache: HashMap::new(),
             scrolled: false,
-            stdout: VecDeque::new(),
+            stdout: None,
+            stdout_buffer: Vec::new(),
+            stdout_position: 0,
+            stderr: None,
+            stderr_buffer: Vec::new(),
+            stderr_position: 0,
         }
     }
 }
 
 impl App {
-    pub fn new(cc: &eframe::CreationContext<'_>, target: SBTarget) -> Self {
+    pub fn new(
+        cc: &eframe::CreationContext<'_>,
+        target: SBTarget,
+        stdout: PathBuf,
+        stderr: PathBuf,
+    ) -> Self {
         let mut app = if let Some(storage) = cc.storage {
             eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default()
         } else {
@@ -62,6 +81,8 @@ impl App {
         };
 
         app.target = Some(target);
+        app.stdout = Some(File::open(stdout).unwrap());
+        app.stderr = Some(File::open(stderr).unwrap());
         app
     }
 }
@@ -91,14 +112,27 @@ impl eframe::App for App {
         // without polling the events process.state() never changes???
         let event = SBEvent::new();
         while debugger.listener().get_next_event(&event) {
-            println!("{:?}", event);
+            // println!("{:?}", event);
         }
 
-        if let Some(output) = process.get_stdout_all() {
-            for line in output.lines() {
-                self.stdout.push_front(line.to_string());
-                self.stdout.truncate(SCROLLBACK_BUFFER);
-            }
+        if let Some(stdout) = &mut self.stdout {
+            // TODO(ds): debugee's stdout is probably unbuffered, find a way
+            //           to flush it
+            stdout
+                .seek(std::io::SeekFrom::Start(
+                    self.stdout_position.try_into().unwrap(),
+                ))
+                .unwrap();
+            self.stdout_position += stdout.read_to_end(&mut self.stdout_buffer).unwrap();
+        }
+
+        if let Some(stderr) = &mut self.stderr {
+            stderr
+                .seek(std::io::SeekFrom::Start(
+                    self.stderr_position.try_into().unwrap(),
+                ))
+                .unwrap();
+            self.stderr_position += stderr.read_to_end(&mut self.stderr_buffer).unwrap();
         }
 
         TopBottomPanel::bottom("bottom_panel")
@@ -323,15 +357,24 @@ impl eframe::App for App {
                                     .id_source(ui.next_auto_id())
                                     .auto_shrink(false)
                                     .show(ui, |ui| {
-                                        for line in &self.stdout {
-                                            ui.label(line);
-                                        }
+                                        ui.label(std::str::from_utf8(&self.stdout_buffer).unwrap());
                                     });
                                 ui.scroll_to_cursor(Some(Align::BOTTOM));
                             });
                     }
                     ConsoleTab::Stderr => {
-                        ui.label("TODO");
+                        ScrollArea::horizontal()
+                            .id_source(ui.next_auto_id())
+                            .auto_shrink(false)
+                            .show(ui, |ui| {
+                                ScrollArea::vertical()
+                                    .id_source(ui.next_auto_id())
+                                    .auto_shrink(false)
+                                    .show(ui, |ui| {
+                                        ui.label(std::str::from_utf8(&self.stderr_buffer).unwrap());
+                                    });
+                                ui.scroll_to_cursor(Some(Align::BOTTOM));
+                            });
                     }
                 }
             });
