@@ -2,16 +2,16 @@
 name = "lldbui"
 version = "0.1.0"
 edition = "2021"
-authors = ["Dennis Schön <mail@dennis-schoen.de>"]
 
 [dependencies]
 egui = "0.27.0"
-eframe = { version = "0.27.0", features = ["persistence"] }
-lldb = "0.0.11"
-clap = { version = "4.5.4", features = ["derive"] }
+eframe = "0.27.0"
 egui_extras = { version = "0.27.2", features = ["syntect"] }
-serde = "1.0.197"
-tempfile = "3.10.1"
+anyhow = "1.0.82"
+clap = { version = "4.5.4", features = ["derive"] }
+lldb = "0.0.11"
+tracing = "0.1.40"
+tracing-subscriber = "0.3.18"
 
 [patch.crates-io]
 lldb = { git = 'https://github.com/roccoblues/lldb.rs' }
