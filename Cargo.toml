@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-egui = "0.27.0"
+egui = { version = "0.27.0", default-features = false }
 eframe = "0.27.0"
 egui_extras = { version = "0.27.2", features = ["syntect"] }
 anyhow = "1.0.82"

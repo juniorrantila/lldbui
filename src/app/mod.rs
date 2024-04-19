@@ -49,6 +49,9 @@ pub struct App {
 impl App {
     pub fn new(cc: &CreationContext<'_>, debug_session: DebugSession) -> Self {
         cc.egui_ctx.set_fonts(resources::load_fonts());
+        let mut style = (*cc.egui_ctx.style()).clone();
+        resources::register_fonts(&mut style);
+        cc.egui_ctx.set_style(style);
 
         let debug_session_reset = Arc::new(AtomicBool::new(false));
         handle_lldb_events_thread(

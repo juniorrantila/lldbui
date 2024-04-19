@@ -26,7 +26,7 @@ impl<'a> IconButton<'a> {
 
 impl<'a> Widget for IconButton<'a> {
     fn ui(self, ui: &mut Ui) -> Response {
-        let mut label = RichText::new(self.label).monospace();
+        let mut label = RichText::new(self.label).size(14.);
         if let Some(color) = self.color {
             label = label.color(color)
         }

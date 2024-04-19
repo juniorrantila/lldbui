@@ -39,11 +39,11 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                         for line in source.lines() {
                             i += 1;
                             if i == line_entry.line() {
-                                ui.label(RichText::new("→").monospace().color(line_entry_color));
+                                ui.label(RichText::new("→").size(18.0).color(line_entry_color));
                             } else {
                                 ui.label("");
                             }
-                            let mut line_number = RichText::new(format!("{}", i)).monospace();
+                            let mut line_number = RichText::new(format!("{}", i));
                             if i == line_entry.line() {
                                 line_number = line_number.color(line_entry_color);
                             }
