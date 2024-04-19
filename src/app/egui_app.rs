@@ -10,25 +10,22 @@ impl eframe::App for App {
 
         components::close_confirmation(self, ctx);
 
-        TopBottomPanel::top("top_panel").show(ctx, |ui| components::top_bar(self, ui));
         TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| components::bottom_bar(self, ui));
         SidePanel::left("left_panel")
             .resizable(true)
             .show(ctx, |ui| {
                 components::process_info(self, ui);
-            });
-        SidePanel::right("right_panel")
-            .resizable(true)
-            .show(ctx, |ui| {
+                ui.separator();
                 components::threads(self, ui);
                 ui.separator();
                 components::frames(self, ui);
                 ui.separator();
                 components::variables(self, ui);
             });
+        TopBottomPanel::top("top_panel").show(ctx, |ui| components::top_bar(self, ui));
         TopBottomPanel::bottom("console_panel")
             .resizable(true)
-            .min_height(30.)
+            .min_height(150.)
             .show(ctx, |ui| {
                 components::console_tabs(self, ui);
             });

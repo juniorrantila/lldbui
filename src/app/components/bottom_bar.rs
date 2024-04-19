@@ -26,7 +26,6 @@ pub fn add(app: &mut App, ui: &mut Ui) {
             global_dark_light_mode_switch(ui);
             ui.separator();
             ui.label(RichText::new(SBDebugger::version()).small());
-            ui.separator();
         });
     });
 }

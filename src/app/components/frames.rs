@@ -7,7 +7,6 @@ use crate::app::App;
 pub fn add(app: &mut App, ui: &mut Ui) {
     let mut selected_frame_id = app.debug_session.selected_frame_id();
 
-    ui.label("frames");
     ScrollArea::both().id_source("frames").show(ui, |ui| {
         egui::Grid::new("frames")
             .num_columns(2)

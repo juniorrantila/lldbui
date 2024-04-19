@@ -7,7 +7,6 @@ use crate::app::App;
 
 pub fn add(app: &mut App, ui: &mut Ui) {
     let mut selected_thread_id = app.debug_session.selected_thread_id();
-    ui.label("threads");
     ScrollArea::both().id_source("threads").show(ui, |ui| {
         egui::Grid::new("threads")
             .num_columns(1)

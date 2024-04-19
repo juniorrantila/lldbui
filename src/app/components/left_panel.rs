@@ -7,7 +7,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
         .num_columns(2)
         .striped(true)
         .show(ui, |ui| {
-            ui.label("Name:");
+            ui.label("Target:");
             ui.label(app.debug_session.process_name());
             ui.end_row();
 
