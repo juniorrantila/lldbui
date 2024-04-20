@@ -11,6 +11,10 @@ pub fn add(app: &mut App, ui: &mut Ui) {
             ui.label(app.debug_session.process_name());
             ui.end_row();
 
+            ui.label("Args:");
+            ui.label(app.debug_session.process_args().join(" "));
+            ui.end_row();
+
             ui.label("State:");
             ui.label(app.debug_session.process_state());
             ui.end_row();
