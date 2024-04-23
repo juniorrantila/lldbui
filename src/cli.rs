@@ -7,6 +7,7 @@ use clap::{ArgGroup, Parser};
 ))]
 pub struct Cli {
     pub executable: Option<String>,
+    pub args: Option<Vec<String>>,
 
     /// Tells the debugger to attach to a process with the given pid.
     #[arg(short = 'p', long)]

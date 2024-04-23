@@ -25,7 +25,7 @@ fn main() -> Result<()> {
     let mut session = DebugSession::new(debugger);
 
     if let Some(executable) = cli.executable {
-        session.run(&executable)?
+        session.run(&executable, cli.args)?
     } else if let Some(pid) = cli.attach_pid {
         session.attach_pid(pid)?
     } else if let Some(name) = cli.attach_name {

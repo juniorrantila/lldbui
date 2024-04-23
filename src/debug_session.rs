@@ -44,10 +44,15 @@ impl DebugSession {
         }
     }
 
-    pub fn run(&mut self, executable: &str) -> Result<()> {
+    pub fn run(&mut self, executable: &str, args: Option<Vec<String>>) -> Result<()> {
         let target = self.debugger.create_target(executable, None, None, false)?;
         let launch_info = SBLaunchInfo::new();
         launch_info.set_launch_flags(LaunchFlags::STOP_AT_ENTRY);
+        if let Some(args) = args {
+            launch_info.set_arguments(args.iter().map(AsRef::as_ref), false);
+        }
+        // (ds): The launch info isn't persisted in the target if we don't explicitly set it here.
+        target.set_launch_info(launch_info.clone());
         target.launch(launch_info)?;
 
         self.target = Some(target);
@@ -79,6 +84,16 @@ impl DebugSession {
             .process_info()
             .name()
             .to_string()
+    }
+
+    pub fn process_args(&self) -> Vec<String> {
+        self.target
+            .as_ref()
+            .unwrap()
+            .get_launch_info()
+            .arguments()
+            .map(|s| s.to_string())
+            .collect()
     }
 
     pub fn process_pid(&self) -> u64 {
@@ -127,8 +142,7 @@ impl DebugSession {
             .unwrap()
             .process()
             .selected_thread()
-            .step_into(RunMode::OnlyDuringStepping)
-            .unwrap();
+            .step_into(RunMode::OnlyDuringStepping);
     }
 
     pub fn step_over(&self) {
