@@ -51,7 +51,8 @@ impl DebugSession {
         if let Some(args) = args {
             launch_info.set_arguments(args.iter().map(AsRef::as_ref), false);
         }
-        // (ds): The launch info isn't persisted in the target if we don't explicitly set it here.
+        // (ds): The launch info isn't persisted in the target if we don't
+        //       explicitly set it here.
         target.set_launch_info(launch_info.clone());
         target.launch(launch_info)?;
 
@@ -76,13 +77,13 @@ impl DebugSession {
         Ok(())
     }
 
-    pub fn process_name(&self) -> String {
+    pub fn executable(&self) -> String {
         self.target
             .as_ref()
             .unwrap()
-            .process()
-            .process_info()
-            .name()
+            .executable()
+            .unwrap()
+            .filename()
             .to_string()
     }
 

@@ -8,7 +8,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
         .striped(true)
         .show(ui, |ui| {
             ui.label("Target:");
-            ui.label(app.debug_session.process_name());
+            ui.label(app.debug_session.executable());
             ui.end_row();
 
             ui.label("Args:");
