@@ -1,6 +1,6 @@
 use std::{path::PathBuf, sync::atomic::Ordering};
 
-use egui::{RichText, ScrollArea, Ui};
+use egui::{Align, RichText, ScrollArea, Ui};
 use egui_extras::syntax_highlighting::{highlight, CodeTheme};
 
 use crate::app::App;
@@ -53,7 +53,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                             if i == line_entry.line()
                                 && app.debug_session_reset.load(Ordering::Relaxed)
                             {
-                                response.scroll_to_me(Some(egui::Align::Center));
+                                response.scroll_to_me(Some(Align::Center));
                                 app.debug_session_reset.store(false, Ordering::Relaxed);
                             }
                             ui.end_row();
