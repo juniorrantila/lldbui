@@ -26,11 +26,11 @@ impl<'a> IconButton<'a> {
 
 impl<'a> Widget for IconButton<'a> {
     fn ui(self, ui: &mut Ui) -> Response {
-        let mut label = RichText::new(self.label).size(14.);
+        let mut label = RichText::new(self.label).size(18.);
         if let Some(color) = self.color {
             label = label.color(color)
         }
-        ui.add(Button::new(label))
-            .on_hover_text(RichText::new(self.hover).small())
+        ui.add(Button::new(label).frame(false))
+            .on_hover_text(self.hover)
     }
 }
