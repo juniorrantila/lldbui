@@ -261,6 +261,23 @@ impl DebugSession {
         self.log.iter()
     }
 
+    pub fn breakpoint_locations(&self) -> Vec<(String, u32)> {
+        let mut locations = Vec::new();
+        for breakpoint in self.target.as_ref().unwrap().breakpoints() {
+            for location in breakpoint.locations() {
+                if let Some(address) = location.address() {
+                    if let Some(line_entry) = address.line_entry() {
+                        locations.push((
+                            line_entry.filespec().filename().to_string(),
+                            line_entry.line(),
+                        ))
+                    }
+                }
+            }
+        }
+        locations
+    }
+
     fn log_sberror(&mut self, res: Result<(), SBError>) {
         match res {
             Ok(_) => (),

@@ -1,4 +1,5 @@
 mod bottom_bar;
+mod breakpoints;
 mod close_confirmation_dialog;
 mod console_tabs;
 mod frames;
@@ -9,6 +10,7 @@ mod top_bar;
 mod variables;
 
 pub use bottom_bar::add as bottom_bar;
+pub use breakpoints::add as breakpoints;
 pub use close_confirmation_dialog::add as close_confirmation;
 pub use console_tabs::add as console_tabs;
 pub use frames::add as frames;

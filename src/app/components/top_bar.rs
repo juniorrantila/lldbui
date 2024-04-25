@@ -53,7 +53,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
         }
 
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-            if ui.add(IconButton::new("⏻", "Quit")).clicked() {
+            if ui.button("Quit").clicked() {
                 app.show_confirmation_dialog = true;
             }
             ui.separator();

@@ -13,6 +13,8 @@ pub fn add(app: &mut App, ui: &mut Ui) {
     }
 
     if let Some(line_entry) = frame.line_entry() {
+        let breakpoint_locations = app.debug_session.breakpoint_locations();
+
         let path: PathBuf = [
             line_entry.filespec().directory(),
             line_entry.filespec().filename(),
@@ -34,39 +36,58 @@ pub fn add(app: &mut App, ui: &mut Ui) {
 
             let theme = &CodeTheme::from_style(ui.style());
             let line_entry_color = ui.style().visuals.warn_fg_color;
+            let breakpoint_color = ui.style().visuals.error_fg_color;
 
             ScrollArea::both()
                 .auto_shrink(false)
                 .animated(false)
                 .show(ui, |ui| {
-                    egui::Grid::new("source").num_columns(3).show(ui, |ui| {
-                        let mut i = 0;
-                        for line in source.lines() {
-                            i += 1;
-                            if i == line_entry.line() {
-                                ui.label(RichText::new("→").size(18.0).color(line_entry_color));
-                            } else {
-                                ui.label("");
+                    egui::Grid::new("source")
+                        .num_columns(4)
+                        .min_col_width(10.)
+                        .show(ui, |ui| {
+                            let mut i = 0;
+                            for line in source.lines() {
+                                i += 1;
+                                let mut found = false;
+                                for (bp_file, bp_line) in breakpoint_locations.iter() {
+                                    if line_entry.filespec().filename() == bp_file && i == *bp_line
+                                    {
+                                        ui.label(RichText::new("⚫").color(breakpoint_color));
+                                        found = true;
+                                    }
+                                }
+                                if !found {
+                                    ui.label(" ");
+                                }
+
+                                if i == line_entry.line() {
+                                    ui.label(RichText::new("→").color(line_entry_color));
+                                } else {
+                                    ui.label(" ");
+                                }
+
+                                let mut line_number = RichText::new(format!("{}", i));
+                                if i == line_entry.line() {
+                                    line_number = line_number.color(line_entry_color);
+                                }
+                                ui.label(line_number);
+                                let layout_job = highlight(ui.ctx(), theme, line, &language);
+                                let response =
+                                    ui.add(egui::Label::new(layout_job).selectable(true));
+                                if i == line_entry.line()
+                                    && app.debug_session_reset.load(Ordering::Relaxed)
+                                {
+                                    response.scroll_to_me(Some(Align::Center));
+                                    app.debug_session_reset.store(false, Ordering::Relaxed);
+                                }
+                                ui.end_row();
                             }
-                            let mut line_number = RichText::new(format!("{}", i));
-                            if i == line_entry.line() {
-                                line_number = line_number.color(line_entry_color);
-                            }
-                            ui.label(line_number);
-                            let layout_job = highlight(ui.ctx(), theme, line, &language);
-                            let response = ui.add(egui::Label::new(layout_job).selectable(true));
-                            if i == line_entry.line()
-                                && app.debug_session_reset.load(Ordering::Relaxed)
-                            {
-                                response.scroll_to_me(Some(Align::Center));
-                                app.debug_session_reset.store(false, Ordering::Relaxed);
-                            }
-                            ui.end_row();
-                        }
-                    })
+                        })
                 });
         }
     } else {
+        // show disassembly
         let function = frame.function();
         if function.is_valid() {
             ui.label(function.display_name());

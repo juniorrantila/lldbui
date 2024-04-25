@@ -21,6 +21,8 @@ impl eframe::App for App {
                 components::frames(self, ui);
                 ui.separator();
                 components::variables(self, ui);
+                ui.separator();
+                components::breakpoints(self, ui);
             });
         TopBottomPanel::top("top_panel").show(ctx, |ui| components::top_bar(self, ui));
         TopBottomPanel::bottom("console_panel")

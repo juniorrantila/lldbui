@@ -46,8 +46,13 @@ I drew lots of inspiration from Vadim Chugunov VSCode plugin [codelldb](https://
 ## TODO
 
 - add build instructions
-- breakpoints gui (show also in source view)
-- watchpoints gui
+- breakpoints
+  - delete
+  - add
+- watchpoints
+  - list
+  - delete
+  - all
 - proper language mappings for the syntax highlighting
 - ability to view coredumps
 - ...

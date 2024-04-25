@@ -29,16 +29,15 @@ impl<'a> Widget for AnsiString<'a> {
                         ..Default::default()
                     },
                 ),
-                Output::Escape(seq) => match seq {
-                    AnsiSequence::SetGraphicsMode(mode) => {
+                Output::Escape(seq) => {
+                    if let AnsiSequence::SetGraphicsMode(mode) = seq {
                         color = if mode == mode_yellow {
                             Color32::YELLOW
                         } else {
                             ui.style().visuals.text_color()
                         }
                     }
-                    _ => (),
-                },
+                }
             }
         }
         ui.label(job)

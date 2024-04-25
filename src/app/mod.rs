@@ -34,12 +34,20 @@ enum VariablesTab {
     Registers,
 }
 
+#[derive(PartialEq)]
+enum BreakpointsTab {
+    Breakpoints,
+    Watchpoints,
+}
+
 pub struct App {
     debug_session: DebugSession,
     frame_history: FrameHistory,
 
     console_tab: ConsoleTab,
     variables_tab: VariablesTab,
+    breakpoints_tab: BreakpointsTab,
+
     show_confirmation_dialog: bool,
     allowed_to_close: bool,
     debug_session_reset: Arc<AtomicBool>,
@@ -71,6 +79,8 @@ impl App {
 
             console_tab: ConsoleTab::Console,
             variables_tab: VariablesTab::Locals,
+            breakpoints_tab: BreakpointsTab::Breakpoints,
+
             show_confirmation_dialog: false,
             allowed_to_close: false,
             debug_session_reset,
