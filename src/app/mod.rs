@@ -10,7 +10,7 @@ use std::{
 };
 
 use eframe::CreationContext;
-use egui::Context;
+use egui::{style::ScrollStyle, Context};
 use lldb::{SBEvent, SBListener};
 use tracing::debug;
 
@@ -63,6 +63,7 @@ impl App {
     pub fn new(cc: &CreationContext<'_>, debug_session: DebugSession) -> Self {
         cc.egui_ctx.set_fonts(resources::load_fonts());
         let mut style = (*cc.egui_ctx.style()).clone();
+        style.spacing.scroll = ScrollStyle::solid();
         resources::register_fonts(&mut style);
         cc.egui_ctx.set_style(style);
 
