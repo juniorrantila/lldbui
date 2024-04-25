@@ -13,14 +13,14 @@ pub fn add(app: &mut App, ui: &mut Ui) {
             )
             .on_hover_text("egui was compiled with debug assertions enabled.");
             ui.separator();
-        }
 
-        ui.label(RichText::new(format!("{:.2} fps", app.frame_history.fps())).small())
-            .on_hover_text(format!(
-                "Mean CPU usage: {:.2} ms / frame",
-                1e3 * app.frame_history.mean_frame_time()
-            ));
-        ui.separator();
+            ui.label(RichText::new(format!("{:.2} fps", app.frame_history.fps())).small())
+                .on_hover_text(format!(
+                    "Mean CPU usage: {:.2} ms / frame",
+                    1e3 * app.frame_history.mean_frame_time()
+                ));
+            ui.separator();
+        }
 
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
             global_dark_light_mode_switch(ui);
