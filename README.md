@@ -46,7 +46,6 @@ I drew lots of inspiration from Vadim Chugunov VSCode plugin [codelldb](https://
 ## TODO
 
 - add build instructions
-- source view assembly if we don't have a source
 - breakpoints gui (show also in source view)
 - watchpoints gui
 - proper language mappings for the syntax highlighting

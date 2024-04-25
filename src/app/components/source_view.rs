@@ -3,10 +3,15 @@ use std::{path::PathBuf, sync::atomic::Ordering};
 use egui::{Align, RichText, ScrollArea, Ui};
 use egui_extras::syntax_highlighting::{highlight, CodeTheme};
 
+use crate::app::widgets::AnsiString;
 use crate::app::App;
 
 pub fn add(app: &mut App, ui: &mut Ui) {
     let frame = app.debug_session.selected_frame();
+    if !frame.is_valid() {
+        return;
+    }
+
     if let Some(line_entry) = frame.line_entry() {
         let path: PathBuf = [
             line_entry.filespec().directory(),
@@ -61,5 +66,22 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                     })
                 });
         }
+    } else {
+        let function = frame.function();
+        if function.is_valid() {
+            ui.label(function.display_name());
+            ui.separator();
+        }
+        let symbol = frame.symbol();
+        if symbol.is_valid() {
+            ui.label(symbol.display_name());
+            ui.separator();
+        }
+        ScrollArea::both()
+            .auto_shrink(false)
+            .animated(false)
+            .show(ui, |ui| {
+                ui.add(AnsiString::new(frame.disassemble()));
+            });
     }
 }
