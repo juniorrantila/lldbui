@@ -3,6 +3,7 @@ mod egui_app;
 mod frame_history;
 mod widgets;
 
+use std::str::FromStr;
 use std::time::Duration;
 use std::{
     sync::atomic::AtomicBool, sync::atomic::Ordering, sync::Arc, thread, thread::JoinHandle,
@@ -42,6 +43,9 @@ pub struct App {
     allowed_to_close: bool,
     debug_session_reset: Arc<AtomicBool>,
 
+    console_input: String,
+    console_output: String,
+
     stdout: String,
     stderr: String,
 }
@@ -69,6 +73,9 @@ impl App {
             show_confirmation_dialog: false,
             allowed_to_close: false,
             debug_session_reset,
+
+            console_input: String::new(),
+            console_output: String::from_str("\n\n").unwrap(),
 
             stdout: String::new(),
             stderr: String::new(),

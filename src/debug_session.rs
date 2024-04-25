@@ -252,4 +252,8 @@ impl DebugSession {
             false => None,
         }
     }
+
+    pub fn execute_command(&self, cmd: &str) -> Result<&str, String> {
+        self.debugger.execute_command(cmd)
+    }
 }

@@ -10,7 +10,7 @@ impl eframe::App for App {
 
         components::close_confirmation(self, ctx);
 
-        TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| components::bottom_bar(self, ui));
+        TopBottomPanel::bottom("bottom_bar").show(ctx, |ui| components::bottom_bar(self, ui));
         SidePanel::left("left_panel")
             .resizable(true)
             .show(ctx, |ui| {
@@ -25,7 +25,6 @@ impl eframe::App for App {
         TopBottomPanel::top("top_panel").show(ctx, |ui| components::top_bar(self, ui));
         TopBottomPanel::bottom("console_panel")
             .resizable(true)
-            .min_height(150.)
             .show(ctx, |ui| {
                 components::console_tabs(self, ui);
             });
