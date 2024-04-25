@@ -20,9 +20,9 @@ pub fn load_fonts() -> FontDefinitions {
 
 pub fn register_fonts(style: &mut Style) {
     style.text_styles = [
-        (TextStyle::Body, FontId::new(13.0, Monospace)),
-        (TextStyle::Button, FontId::new(13.0, Monospace)),
-        (TextStyle::Monospace, FontId::new(13.0, Monospace)),
+        (TextStyle::Body, FontId::new(12.0, Monospace)),
+        (TextStyle::Button, FontId::new(12.0, Monospace)),
+        (TextStyle::Monospace, FontId::new(12.0, Monospace)),
         (TextStyle::Small, FontId::new(10.0, Monospace)),
         (TextStyle::Heading, FontId::new(18.0, Monospace)),
     ]

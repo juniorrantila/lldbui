@@ -13,6 +13,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
     });
     ScrollArea::both()
         .id_source("variables")
+        .auto_shrink(false)
         .show(ui, |ui| match app.variables_tab {
             VariablesTab::Locals => {
                 ui.add(VariableList::new(frame.locals().iter()));

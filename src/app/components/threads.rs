@@ -7,28 +7,31 @@ use crate::app::App;
 
 pub fn add(app: &mut App, ui: &mut Ui) {
     let mut selected_thread_id = app.debug_session.selected_thread_id();
-    ScrollArea::both().id_source("threads").show(ui, |ui| {
-        egui::Grid::new("threads")
-            .num_columns(1)
-            .striped(true)
-            .show(ui, |ui| {
-                for thread in app.debug_session.process_threads() {
-                    if ui
-                        .selectable_value(
-                            &mut selected_thread_id,
-                            thread.thread_id(),
-                            thread_label(&thread),
-                        )
-                        .clicked()
-                    {
-                        app.debug_session.select_thread(&thread);
-                        // TODO(ds): remove once we fix the receiving of thread events
-                        app.debug_session_reset.store(true, Ordering::Relaxed);
+    ScrollArea::both()
+        .id_source("threads")
+        .auto_shrink(false)
+        .show(ui, |ui| {
+            egui::Grid::new("threads")
+                .num_columns(1)
+                .striped(true)
+                .show(ui, |ui| {
+                    for thread in app.debug_session.process_threads() {
+                        if ui
+                            .selectable_value(
+                                &mut selected_thread_id,
+                                thread.thread_id(),
+                                thread_label(&thread),
+                            )
+                            .clicked()
+                        {
+                            app.debug_session.select_thread(&thread);
+                            // TODO(ds): remove once we fix the receiving of thread events
+                            app.debug_session_reset.store(true, Ordering::Relaxed);
+                        }
+                        ui.end_row();
                     }
-                    ui.end_row();
-                }
-            });
-    });
+                });
+        });
 }
 
 fn thread_label(thread: &SBThread) -> String {

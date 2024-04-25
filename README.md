@@ -24,7 +24,7 @@ Options:
   -V, --version                    Print version
 ```
 
-Passing an executable as a positional argument prepares lldbui to debug the given executable. To disambiguate between arguments passed to lldbui and arguments passed to the debugged executable, arguments starting with a `-` must be passed after `--`. Eg. `lldbui someprog -- --progarg1 --progarg2=foo`.
+Passing an executable as a positional argument prepares lldbui to debug the given executable. To disambiguate between arguments passed to lldbui and arguments passed to the debugged executable, arguments starting with a `-` must be passed after `--`: `lldbui someprog -- --progarg1 --progarg2=foo`.
 
 ## Build
 
@@ -55,4 +55,7 @@ I drew lots of inspiration from Vadim Chugunov VSCode plugin [codelldb](https://
   - all
 - proper language mappings for the syntax highlighting
 - ability to view coredumps
+- use more idiomatic rust
+- reduce amount of unwrap() etc.
+- proper icons instead of text buttons
 - ...
