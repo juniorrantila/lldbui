@@ -23,6 +23,7 @@ enum ConsoleTab {
     Console,
     Stdout,
     Stderr,
+    Log,
 }
 
 #[derive(PartialEq)]

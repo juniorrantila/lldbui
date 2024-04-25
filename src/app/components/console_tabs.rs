@@ -7,6 +7,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
         ui.selectable_value(&mut app.console_tab, ConsoleTab::Console, "console");
         ui.selectable_value(&mut app.console_tab, ConsoleTab::Stdout, "stdout");
         ui.selectable_value(&mut app.console_tab, ConsoleTab::Stderr, "stderr");
+        ui.selectable_value(&mut app.console_tab, ConsoleTab::Log, "log");
     });
     ScrollArea::both()
         .auto_shrink(false)
@@ -44,6 +45,18 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                     app.stderr.push_str(&output);
                 }
                 ui.label(&app.stderr);
+            }
+            ConsoleTab::Log => {
+                egui::Grid::new(ui.next_auto_id())
+                    .num_columns(2)
+                    .striped(true)
+                    .show(ui, |ui| {
+                        for (time, message) in app.debug_session.logs() {
+                            ui.label(time.to_string());
+                            ui.label(message);
+                            ui.end_row();
+                        }
+                    });
             }
         });
 }

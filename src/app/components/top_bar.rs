@@ -3,7 +3,7 @@ use egui::{Align, Color32, Layout, Ui};
 use crate::app::{widgets::IconButton, App};
 
 pub fn add(app: &mut App, ui: &mut Ui) {
-    let debug_session = &app.debug_session;
+    let debug_session = &mut app.debug_session;
 
     ui.horizontal(|ui| {
         if ui

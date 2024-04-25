@@ -1,11 +1,12 @@
+use chrono::prelude::*;
 use std::collections::HashMap;
 use std::fs::read_to_string;
 use std::path::Path;
 
 use anyhow::Result;
 use lldb::{
-    LaunchFlags, RunMode, SBAttachInfo, SBDebugger, SBFrame, SBLaunchInfo, SBListener, SBProcess,
-    SBTarget, SBThread, StateType,
+    LaunchFlags, RunMode, SBAttachInfo, SBDebugger, SBError, SBFrame, SBLaunchInfo, SBListener,
+    SBProcess, SBTarget, SBThread, StateType,
 };
 
 pub fn initialize() {
@@ -21,6 +22,7 @@ pub struct DebugSession {
     pub target: Option<SBTarget>,
 
     source_cache: HashMap<String, String>,
+    log: Vec<(DateTime<Local>, String)>,
 }
 
 impl DebugSession {
@@ -41,6 +43,7 @@ impl DebugSession {
             target: None,
 
             source_cache: HashMap::new(),
+            log: Vec::new(),
         }
     }
 
@@ -124,17 +127,12 @@ impl DebugSession {
         )
     }
 
-    pub fn process_stop(&self) {
-        self.target.as_ref().unwrap().process().stop().unwrap();
+    pub fn process_stop(&mut self) {
+        self.log_sberror(self.target.as_ref().unwrap().process().stop());
     }
 
-    pub fn process_continue(&self) {
-        self.target
-            .as_ref()
-            .unwrap()
-            .process()
-            .continue_execution()
-            .unwrap();
+    pub fn process_continue(&mut self) {
+        self.log_sberror(self.target.as_ref().unwrap().process().continue_execution());
     }
 
     pub fn step_into(&self) {
@@ -146,24 +144,26 @@ impl DebugSession {
             .step_into(RunMode::OnlyDuringStepping);
     }
 
-    pub fn step_over(&self) {
-        self.target
-            .as_ref()
-            .unwrap()
-            .process()
-            .selected_thread()
-            .step_over(RunMode::OnlyDuringStepping)
-            .unwrap();
+    pub fn step_over(&mut self) {
+        self.log_sberror(
+            self.target
+                .as_ref()
+                .unwrap()
+                .process()
+                .selected_thread()
+                .step_over(RunMode::OnlyDuringStepping),
+        )
     }
 
-    pub fn step_out(&self) {
-        self.target
-            .as_ref()
-            .unwrap()
-            .process()
-            .selected_thread()
-            .step_out()
-            .unwrap();
+    pub fn step_out(&mut self) {
+        self.log_sberror(
+            self.target
+                .as_ref()
+                .unwrap()
+                .process()
+                .selected_thread()
+                .step_out(),
+        )
     }
 
     pub fn get_stdout(&self) -> Option<String> {
@@ -255,5 +255,16 @@ impl DebugSession {
 
     pub fn execute_command(&self, cmd: &str) -> Result<&str, String> {
         self.debugger.execute_command(cmd)
+    }
+
+    pub fn logs(&self) -> impl Iterator<Item = &(DateTime<Local>, String)> {
+        self.log.iter()
+    }
+
+    fn log_sberror(&mut self, res: Result<(), SBError>) {
+        match res {
+            Ok(_) => (),
+            Err(e) => self.log.push((Local::now(), format!("{}", e))),
+        }
     }
 }
