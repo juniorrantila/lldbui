@@ -1,5 +1,6 @@
 use crate::defines::fonts::{FONT_NOTO_SYMBOLS, FONT_NOTO_SYMBOLS2, FONT_SOURCE_CODE_PRO};
-use egui::{FontData, FontDefinitions, FontFamily::Monospace, FontId, Style, TextStyle};
+use crate::defines::ICON;
+use egui::{FontData, FontDefinitions, FontFamily::Monospace, FontId, IconData, Style, TextStyle};
 
 pub fn load_fonts() -> FontDefinitions {
     let mut fonts = FontDefinitions::default();
@@ -41,4 +42,8 @@ pub fn register_fonts(style: &mut Style) {
         (TextStyle::Heading, FontId::new(18.0, Monospace)),
     ]
     .into();
+}
+
+pub fn load_icon() -> IconData {
+    eframe::icon_data::from_png_bytes(&ICON).unwrap()
 }

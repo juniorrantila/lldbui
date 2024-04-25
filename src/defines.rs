@@ -1,4 +1,5 @@
 pub const APP_NAME: &str = "lldbui";
+pub const ICON: &[u8] = include_bytes!("../resources/icon.png");
 
 pub mod fonts {
     pub const FONT_SOURCE_CODE_PRO: &[u8] =

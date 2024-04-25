@@ -36,7 +36,9 @@ fn main() -> Result<()> {
     };
 
     let optins = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_maximized(true),
+        viewport: egui::ViewportBuilder::default()
+            .with_maximized(true)
+            .with_icon(resources::load_icon()),
         follow_system_theme: true,
         ..Default::default()
     };
