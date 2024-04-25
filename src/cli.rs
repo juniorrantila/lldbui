@@ -16,4 +16,8 @@ pub struct Cli {
     /// Tells the debugger to attach to a process with the given name.
     #[arg(short = 'n', long)]
     pub attach_name: Option<String>,
+
+    /// Do not automatically parse any '.lldbinit' files.
+    #[arg(short = 'x', long)]
+    pub no_lldbinit: bool,
 }

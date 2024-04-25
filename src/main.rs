@@ -20,7 +20,7 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     debug_session::initialize();
-    let debugger = SBDebugger::create(true);
+    let debugger = SBDebugger::create(!cli.no_lldbinit);
     debugger.set_asynchronous(true);
     let mut session = DebugSession::new(debugger);
 
