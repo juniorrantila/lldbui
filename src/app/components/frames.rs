@@ -16,6 +16,16 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                 .striped(true)
                 .show(ui, |ui| {
                     for frame in app.debug_session.thread_frames() {
+                        if let Some(line_entry) = frame.line_entry() {
+                            ui.label(format!(
+                                "{}:{}",
+                                line_entry.filespec().filename(),
+                                line_entry.line(),
+                            ));
+                        } else {
+                            ui.label("");
+                        }
+
                         if ui
                             .selectable_value(
                                 &mut selected_frame_id,
@@ -27,13 +37,6 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                             app.debug_session.select_frame(&frame);
                             // TODO(ds): remove once we fix the receiving of thread events
                             app.debug_session_reset.store(true, Ordering::Relaxed);
-                        }
-                        if let Some(line_entry) = frame.line_entry() {
-                            ui.label(format!(
-                                "{}:{}",
-                                line_entry.filespec().filename(),
-                                line_entry.line(),
-                            ));
                         }
                         ui.end_row();
                     }
