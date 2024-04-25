@@ -55,7 +55,9 @@ I drew lots of inspiration from Vadim Chugunov VSCode plugin [codelldb](https://
   - all
 - proper language mappings for the syntax highlighting
 - ability to view coredumps
+- keyboard shortcuts
 - use more idiomatic rust
 - reduce amount of unwrap() etc.
 - proper icons instead of text buttons
+- ui love
 - ...
