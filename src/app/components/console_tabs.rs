@@ -5,7 +5,6 @@ use crate::app::{App, ConsoleTab};
 pub fn add(app: &mut App, ui: &mut Ui) {
     ui.horizontal(|ui| {
         ui.selectable_value(&mut app.console_tab, ConsoleTab::Console, "console");
-        ui.selectable_value(&mut app.console_tab, ConsoleTab::Log, "log");
         ui.selectable_value(&mut app.console_tab, ConsoleTab::Stdout, "stdout");
         ui.selectable_value(&mut app.console_tab, ConsoleTab::Stderr, "stderr");
     });
@@ -33,18 +32,6 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                     response.scroll_to_me(Some(Align::Center));
                     response.request_focus();
                 }
-            }
-            ConsoleTab::Log => {
-                egui::Grid::new(ui.next_auto_id())
-                    .num_columns(2)
-                    .striped(true)
-                    .show(ui, |ui| {
-                        for (time, message) in app.debug_session.logs() {
-                            ui.label(time.to_string());
-                            ui.label(message);
-                            ui.end_row();
-                        }
-                    });
             }
             ConsoleTab::Stdout => {
                 if let Some(output) = app.debug_session.get_stdout() {

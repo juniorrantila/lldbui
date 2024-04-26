@@ -44,7 +44,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
         }
         if ui
             .add_enabled(
-                debug_session.process_can_continue(),
+                debug_session.has_parent_frame(),
                 IconButton::new("⬆", "Step Out"),
             )
             .clicked()

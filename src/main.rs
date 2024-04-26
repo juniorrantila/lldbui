@@ -15,7 +15,13 @@ use crate::cli::Cli;
 use debug_session::DebugSession;
 
 fn main() -> Result<()> {
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt()
+        .event_format(
+            tracing_subscriber::fmt::format()
+                .with_file(true)
+                .with_line_number(true),
+        )
+        .init();
 
     let cli = Cli::parse();
 

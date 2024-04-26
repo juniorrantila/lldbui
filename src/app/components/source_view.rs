@@ -85,6 +85,8 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                             }
                         })
                 });
+        } else {
+            tracing::info!("source file not found: {}", path.display());
         }
     } else {
         // show disassembly

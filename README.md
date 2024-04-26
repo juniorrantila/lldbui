@@ -56,6 +56,7 @@ I drew lots of inspiration from Vadim Chugunov VSCode plugin [codelldb](https://
 ## TODO
 
 - output lldb log in gui
+- console history (empty submit repeats previous command)
 - handle or prevent commands that require cli feedback (`break delete`)
 - proper language mappings for the syntax highlighting
 - ability to view coredumps

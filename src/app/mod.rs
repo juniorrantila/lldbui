@@ -12,7 +12,6 @@ use std::{
 use eframe::CreationContext;
 use egui::{style::ScrollStyle, Context};
 use lldb::{SBEvent, SBListener};
-use tracing::debug;
 
 use crate::app::frame_history::FrameHistory;
 use crate::debug_session::DebugSession;
@@ -23,7 +22,6 @@ enum ConsoleTab {
     Console,
     Stdout,
     Stderr,
-    Log,
 }
 
 #[derive(PartialEq)]
@@ -109,7 +107,7 @@ pub fn handle_lldb_events_thread(
             if !event.is_valid() {
                 continue;
             }
-            debug!("{:?}", event);
+            tracing::debug!("{:?}", event);
             reset.store(true, Ordering::Relaxed);
             egui_ctx.request_repaint_after(Duration::from_millis(100));
         }

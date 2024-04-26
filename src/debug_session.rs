@@ -1,12 +1,11 @@
-use chrono::prelude::*;
 use std::collections::HashMap;
 use std::fs::read_to_string;
 use std::path::Path;
 
 use anyhow::Result;
 use lldb::{
-    LaunchFlags, RunMode, SBAttachInfo, SBDebugger, SBError, SBFrame, SBLaunchInfo, SBListener,
-    SBProcess, SBTarget, SBThread, StateType,
+    LaunchFlags, RunMode, SBAttachInfo, SBDebugger, SBFrame, SBLaunchInfo, SBListener, SBProcess,
+    SBTarget, SBThread, StateType,
 };
 
 pub fn initialize() {
@@ -22,7 +21,6 @@ pub struct DebugSession {
     pub target: Option<SBTarget>,
 
     source_cache: HashMap<String, String>,
-    log: Vec<(DateTime<Local>, String)>,
 }
 
 impl DebugSession {
@@ -43,7 +41,6 @@ impl DebugSession {
             target: None,
 
             source_cache: HashMap::new(),
-            log: Vec::new(),
         }
     }
 
@@ -81,13 +78,13 @@ impl DebugSession {
     }
 
     pub fn executable(&self) -> String {
-        self.target
-            .as_ref()
-            .unwrap()
-            .executable()
-            .unwrap()
-            .filename()
-            .to_string()
+        match self.target.as_ref().unwrap().executable() {
+            Some(executable) => executable.filename().to_string(),
+            None => {
+                tracing::error!("executable not available");
+                String::new()
+            }
+        }
     }
 
     pub fn process_args(&self) -> Vec<String> {
@@ -127,12 +124,35 @@ impl DebugSession {
         )
     }
 
+    pub fn has_parent_frame(&self) -> bool {
+        let frame = self
+            .target
+            .as_ref()
+            .unwrap()
+            .process()
+            .selected_thread()
+            .selected_frame();
+        frame.is_valid() && frame.parent_frame().is_some()
+    }
+
     pub fn process_stop(&mut self) {
-        self.log_sberror(self.target.as_ref().unwrap().process().stop());
+        let _ = self
+            .target
+            .as_ref()
+            .unwrap()
+            .process()
+            .stop()
+            .map_err(|err| tracing::error!("{}", err));
     }
 
     pub fn process_continue(&mut self) {
-        self.log_sberror(self.target.as_ref().unwrap().process().continue_execution());
+        let _ = self
+            .target
+            .as_ref()
+            .unwrap()
+            .process()
+            .continue_execution()
+            .map_err(|err| tracing::error!("{}", err));
     }
 
     pub fn step_into(&self) {
@@ -145,25 +165,25 @@ impl DebugSession {
     }
 
     pub fn step_over(&mut self) {
-        self.log_sberror(
-            self.target
-                .as_ref()
-                .unwrap()
-                .process()
-                .selected_thread()
-                .step_over(RunMode::OnlyDuringStepping),
-        )
+        let _ = self
+            .target
+            .as_ref()
+            .unwrap()
+            .process()
+            .selected_thread()
+            .step_over(RunMode::OnlyDuringStepping)
+            .map_err(|err| tracing::error!("{}", err));
     }
 
     pub fn step_out(&mut self) {
-        self.log_sberror(
-            self.target
-                .as_ref()
-                .unwrap()
-                .process()
-                .selected_thread()
-                .step_out(),
-        )
+        let _ = self
+            .target
+            .as_ref()
+            .unwrap()
+            .process()
+            .selected_thread()
+            .step_out()
+            .map_err(|err| tracing::error!("{}", err));
     }
 
     pub fn get_stdout(&self) -> Option<String> {
@@ -257,10 +277,6 @@ impl DebugSession {
         self.debugger.execute_command(cmd)
     }
 
-    pub fn logs(&self) -> impl Iterator<Item = &(DateTime<Local>, String)> {
-        self.log.iter()
-    }
-
     pub fn breakpoint_locations(&self) -> Vec<(i32, String, u32)> {
         let mut locations = Vec::new();
         for breakpoint in self.target.as_ref().unwrap().breakpoints() {
@@ -285,12 +301,5 @@ impl DebugSession {
 
     pub fn delete_watchpoint(&self, id: i32) {
         self.target.as_ref().unwrap().delete_watchpoint(id);
-    }
-
-    fn log_sberror(&mut self, res: Result<(), SBError>) {
-        match res {
-            Ok(_) => (),
-            Err(e) => self.log.push((Local::now(), format!("{}", e))),
-        }
     }
 }
