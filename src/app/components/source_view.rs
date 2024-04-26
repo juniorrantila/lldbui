@@ -50,7 +50,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                             for line in source.lines() {
                                 i += 1;
                                 let mut found = false;
-                                for (bp_file, bp_line) in breakpoint_locations.iter() {
+                                for (_, bp_file, bp_line) in breakpoint_locations.iter() {
                                     if line_entry.filespec().filename() == bp_file && i == *bp_line
                                     {
                                         ui.label(RichText::new("⚫").color(breakpoint_color));
