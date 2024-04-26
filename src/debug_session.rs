@@ -279,6 +279,14 @@ impl DebugSession {
         locations
     }
 
+    pub fn delete_breakpoint(&self, id: i32) {
+        self.target.as_ref().unwrap().delete_breakpoint(id);
+    }
+
+    pub fn delete_watchpoint(&self, id: i32) {
+        self.target.as_ref().unwrap().delete_watchpoint(id);
+    }
+
     fn log_sberror(&mut self, res: Result<(), SBError>) {
         match res {
             Ok(_) => (),

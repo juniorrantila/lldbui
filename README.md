@@ -46,11 +46,6 @@ I drew lots of inspiration from Vadim Chugunov VSCode plugin [codelldb](https://
 ## TODO
 
 - add build instructions
-- breakpoints
-  - delete
-  - add
-- watchpoints
-  - delete
 - handle or prevent commands that require cli feedback (`break delete`)
 - proper language mappings for the syntax highlighting
 - ability to view coredumps
