@@ -50,6 +50,7 @@ impl DebugSession {
         if let Some(args) = args {
             launch_info.set_arguments(args.iter().map(AsRef::as_ref), false);
         }
+
         // (ds): The launch info isn't persisted in the target if we don't
         //       explicitly set it here.
         target.set_launch_info(launch_info.clone());
@@ -207,8 +208,8 @@ impl DebugSession {
     }
 
     pub fn get_stderr(&self) -> Option<String> {
-        // TODO(ds): somehow stderr of the process ends up in stdout and this
-        //           is always empty?
+        // TODO(ds): somehow stderr of the process ends up in stdout and this is always empty?
+        // https://github.com/llvm/llvm-project/issues/25350#issuecomment-980951241
         self.target.as_ref().unwrap().process().get_stderr_all()
     }
 

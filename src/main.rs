@@ -24,6 +24,7 @@ fn main() -> Result<()> {
 
     debug_session::initialize();
     let debugger = SBDebugger::create(!cli.no_lldbinit);
+    // debugger.enable_log("lldb", &["process", "target"]);
     let mut session = DebugSession::new(debugger);
 
     if let Some(executable) = cli.executable {
