@@ -45,7 +45,7 @@ impl DebugSession {
 
     pub fn run(&mut self, executable: &str, args: Option<Vec<String>>) -> Result<()> {
         let target = self.debugger.create_target(executable, None, None, false)?;
-        let launch_info = SBLaunchInfo::new();
+        let launch_info = target.get_launch_info();
         launch_info.set_launch_flags(LaunchFlags::STOP_AT_ENTRY);
         if let Some(args) = args {
             launch_info.set_arguments(args.iter().map(AsRef::as_ref), false);
@@ -53,7 +53,12 @@ impl DebugSession {
         // (ds): The launch info isn't persisted in the target if we don't
         //       explicitly set it here.
         target.set_launch_info(launch_info.clone());
+
+        // Disable async events so the launch will be successful when we return from
+        // the launch call and the launch will happen synchronously
+        self.debugger.set_asynchronous(false);
         target.launch(launch_info)?;
+        self.debugger.set_asynchronous(true);
 
         self.target = Some(target);
 
@@ -63,7 +68,13 @@ impl DebugSession {
     pub fn attach_pid(&mut self, pid: u64) -> Result<()> {
         let target = self.debugger.create_target("", None, None, false)?;
         let attach_info = SBAttachInfo::new_with_pid(pid);
+
+        // Disable async events so the attach will be successful when we return from
+        // the attach call and the attach will happen synchronously
+        self.debugger.set_asynchronous(false);
         target.attach(attach_info)?;
+        self.debugger.set_asynchronous(true);
+
         self.target = Some(target);
         Ok(())
     }
@@ -71,7 +82,13 @@ impl DebugSession {
     pub fn attach_name(&mut self, name: &str) -> Result<()> {
         let target = self.debugger.create_target("", None, None, false)?;
         let attach_info = SBAttachInfo::new_with_path(name, true, false);
+
+        // Disable async events so the attach will be successful when we return from
+        // the attach call and the attach will happen synchronously
+        self.debugger.set_asynchronous(false);
         target.attach(attach_info)?;
+        self.debugger.set_asynchronous(true);
+
         self.target = Some(target);
         Ok(())
     }

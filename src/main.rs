@@ -24,7 +24,6 @@ fn main() -> Result<()> {
 
     debug_session::initialize();
     let debugger = SBDebugger::create(!cli.no_lldbinit);
-    debugger.set_asynchronous(true);
     let mut session = DebugSession::new(debugger);
 
     if let Some(executable) = cli.executable {
