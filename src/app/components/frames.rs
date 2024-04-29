@@ -35,7 +35,10 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                             .clicked()
                         {
                             app.debug_session.select_frame(&frame);
-                            // TODO(ds): remove once we fix the receiving of thread events
+                            // (ds): lldb does not publish frame changed events
+                            //       when the frame is changed via the API.
+                            //       So we need to manually trigger a redraw.
+                            //       https://stackoverflow.com/questions/41798498/how-to-use-lldb-trace-thread-and-python-sbthread-ebroadcastbitselectedframechang/41815283#41815283
                             app.debug_session_reset.store(true, Ordering::Relaxed);
                         }
                         ui.end_row();

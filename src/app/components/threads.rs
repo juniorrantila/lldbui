@@ -25,7 +25,9 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                             .clicked()
                         {
                             app.debug_session.select_thread(&thread);
-                            // TODO(ds): remove once we fix the receiving of thread events
+                            // (ds): lldb does not publish thread changed events
+                            //       when the thread is changed via the API.
+                            //       So we need to manually trigger a redraw.
                             app.debug_session_reset.store(true, Ordering::Relaxed);
                         }
                         ui.end_row();

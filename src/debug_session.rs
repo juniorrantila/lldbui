@@ -32,7 +32,6 @@ impl DebugSession {
             SBProcess::broadcaster_class_name(),
             !0,
         );
-        // TODO(ds): why don't we get thread events?
         listener.start_listening_for_event_class(&debugger, SBThread::broadcaster_class_name(), !0);
 
         Self {
