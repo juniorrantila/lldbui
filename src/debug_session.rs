@@ -4,8 +4,8 @@ use std::path::Path;
 
 use anyhow::Result;
 use lldb::{
-    LaunchFlags, RunMode, SBAttachInfo, SBDebugger, SBFrame, SBLaunchInfo, SBListener, SBProcess,
-    SBTarget, SBThread, StateType,
+    LaunchFlags, RunMode, SBAttachInfo, SBDebugger, SBFrame, SBListener, SBProcess, SBTarget,
+    SBThread, StateType,
 };
 
 pub fn initialize() {

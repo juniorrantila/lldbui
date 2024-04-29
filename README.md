@@ -52,14 +52,13 @@ This project wouldn't have been possible without:
 *  [Emil Ernerfeldts](https://github.com/emilk/) awesome [egui](https://www.egui.rs/) library 
 *  [Bruce Mitcheners](https://github.com/waywardmonkeys) [Rust bindings for the lldb C++ API](https://docs.rs/lldb/latest/lldb/)
 
-I drew lots of inspiration from Vadim Chugunov VSCode plugin [codelldb](https://github.com/vadimcn/codelldb) and [lldbg](https://github.com/zmeadows/lldbg/).
+I drew lots of inspiration from Vadim Chugunov VSCode plugin [codelldb](https://github.com/vadimcn/codelldb) and from [lldbg](https://github.com/zmeadows/lldbg/).
 
 ## TODO
 
 - output lldb log in gui
 - console history (empty submit repeats previous command)
 - handle or prevent commands that require cli feedback (`break delete`)
-- proper language mappings for the syntax highlighting
 - ability to view coredumps
 - keyboard shortcuts
 - use more idiomatic rust
