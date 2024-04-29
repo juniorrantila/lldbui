@@ -3,6 +3,7 @@
 A lightweight native GUI for LLDB.
 
 ![](https://git.sr.ht/~dennis/lldbui/blob/main/resources/screenshots/screenshot_dark.png)
+
 ![](https://git.sr.ht/~dennis/lldbui/blob/main/resources/screenshots/screenshot_light.png)
 
 ## Usage
