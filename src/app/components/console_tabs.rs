@@ -34,16 +34,10 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                 }
             }
             ConsoleTab::Stdout => {
-                if let Some(output) = app.debug_session.get_stdout() {
-                    app.stdout.push_str(&output);
-                }
-                ui.label(&app.stdout);
+                ui.label(app.stdout.lock().unwrap().as_str());
             }
             ConsoleTab::Stderr => {
-                if let Some(output) = app.debug_session.get_stderr() {
-                    app.stderr.push_str(&output);
-                }
-                ui.label(&app.stderr);
+                ui.label(app.stderr.lock().unwrap().as_str());
             }
         });
 }

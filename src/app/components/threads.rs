@@ -1,5 +1,3 @@
-use std::sync::atomic::Ordering;
-
 use egui::{ScrollArea, Ui};
 use lldb::SBThread;
 
@@ -28,7 +26,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                             // (ds): lldb does not publish thread changed events
                             //       when the thread is changed via the API.
                             //       So we need to manually trigger a redraw.
-                            app.debug_session_reset.store(true, Ordering::Relaxed);
+                            app.scroll_source_view();
                         }
                         ui.end_row();
                     }

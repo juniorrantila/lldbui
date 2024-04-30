@@ -1,4 +1,5 @@
-use std::{path::PathBuf, sync::atomic::Ordering};
+use std::path::PathBuf;
+use std::sync::atomic::Ordering;
 
 use egui::{Align, RichText, ScrollArea, Ui};
 use egui_extras::syntax_highlighting::{highlight, CodeTheme};
@@ -71,10 +72,10 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                                 let response =
                                     ui.add(egui::Label::new(layout_job).selectable(true));
                                 if i == line_entry.line()
-                                    && app.debug_session_reset.load(Ordering::Relaxed)
+                                    && app.scroll_source_view.load(Ordering::Relaxed)
                                 {
                                     response.scroll_to_me(Some(Align::Center));
-                                    app.debug_session_reset.store(false, Ordering::Relaxed);
+                                    app.scroll_source_view.store(false, Ordering::Relaxed)
                                 }
                                 ui.end_row();
                             }

@@ -128,10 +128,7 @@ impl DebugSession {
     }
 
     pub fn process_is_running(&self) -> bool {
-        matches!(
-            self.target.as_ref().unwrap().process().state(),
-            StateType::Running | StateType::Stepping
-        )
+        self.target.as_ref().unwrap().process().is_running()
     }
 
     pub fn process_can_continue(&self) -> bool {
@@ -201,16 +198,6 @@ impl DebugSession {
             .selected_thread()
             .step_out()
             .map_err(|err| tracing::error!("{}", err));
-    }
-
-    pub fn get_stdout(&self) -> Option<String> {
-        self.target.as_ref().unwrap().process().get_stdout_all()
-    }
-
-    pub fn get_stderr(&self) -> Option<String> {
-        // TODO(ds): somehow stderr of the process ends up in stdout and this is always empty?
-        // https://github.com/llvm/llvm-project/issues/25350#issuecomment-980951241
-        self.target.as_ref().unwrap().process().get_stderr_all()
     }
 
     pub fn selected_thread_id(&self) -> u64 {

@@ -4,14 +4,14 @@ mod frame_history;
 mod widgets;
 
 use std::str::FromStr;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use std::{
-    sync::atomic::AtomicBool, sync::atomic::Ordering, sync::Arc, thread, thread::JoinHandle,
-};
+use std::{thread, thread::JoinHandle};
 
 use eframe::CreationContext;
 use egui::{style::ScrollStyle, Context};
-use lldb::{SBEvent, SBListener};
+use lldb::{SBEvent, SBListener, SBProcessEvent, SBTarget};
 
 use crate::app::frame_history::FrameHistory;
 use crate::debug_session::DebugSession;
@@ -48,13 +48,13 @@ pub struct App {
 
     show_confirmation_dialog: bool,
     allowed_to_close: bool,
-    debug_session_reset: Arc<AtomicBool>,
+    scroll_source_view: Arc<AtomicBool>,
 
     console_input: String,
     console_output: String,
 
-    stdout: String,
-    stderr: String,
+    stdout: Arc<Mutex<String>>,
+    stderr: Arc<Mutex<String>>,
 }
 
 impl App {
@@ -65,11 +65,17 @@ impl App {
         resources::register_fonts(&mut style);
         cc.egui_ctx.set_style(style);
 
-        let debug_session_reset = Arc::new(AtomicBool::new(false));
+        let scroll_source_view = Arc::new(AtomicBool::new(false));
+        let stdout = Arc::new(Mutex::new(String::new()));
+        let stderr = Arc::new(Mutex::new(String::new()));
+
         handle_lldb_events_thread(
             cc.egui_ctx.clone(),
+            debug_session.target.as_ref().unwrap().clone(),
             debug_session.listener.clone(),
-            debug_session_reset.clone(),
+            scroll_source_view.clone(),
+            stdout.clone(),
+            stderr.clone(),
         );
 
         Self {
@@ -82,14 +88,18 @@ impl App {
 
             show_confirmation_dialog: false,
             allowed_to_close: false,
-            debug_session_reset,
+            scroll_source_view,
 
             console_input: String::new(),
             console_output: String::from_str("\n\n").unwrap(),
 
-            stdout: String::new(),
-            stderr: String::new(),
+            stdout,
+            stderr,
         }
+    }
+
+    pub fn scroll_source_view(&self) {
+        self.scroll_source_view.store(true, Ordering::Relaxed);
     }
 }
 
@@ -97,8 +107,11 @@ impl App {
 // For example when new data from stdout of the debugged process is available.
 pub fn handle_lldb_events_thread(
     egui_ctx: Context,
+    target: SBTarget,
     listener: SBListener,
-    reset: Arc<AtomicBool>,
+    scroll: Arc<AtomicBool>,
+    stdout: Arc<Mutex<String>>,
+    stderr: Arc<Mutex<String>>,
 ) -> JoinHandle<()> {
     thread::spawn(move || {
         let event = SBEvent::new();
@@ -107,8 +120,22 @@ pub fn handle_lldb_events_thread(
             if !event.is_valid() {
                 continue;
             }
-            tracing::debug!("{:?}", event);
-            reset.store(true, Ordering::Relaxed);
+            tracing::debug!("LLDB event: {:?}", event);
+
+            if event.event_type() == SBProcessEvent::BROADCAST_BIT_STATE_CHANGED {
+                scroll.store(true, Ordering::Relaxed);
+            } else if event.event_type() == SBProcessEvent::BROADCAST_BIT_STDOUT {
+                if let Some(data) = target.process().get_stdout_all() {
+                    stdout.lock().unwrap().push_str(&data);
+                }
+            } else if event.event_type() == SBProcessEvent::BROADCAST_BIT_STDERR {
+                // TODO(ds): somehow stderr of the process ends up in stdout and this is never triggered?
+                // https://github.com/llvm/llvm-project/issues/25350#issuecomment-980951241
+                if let Some(data) = target.process().get_stderr_all() {
+                    stderr.lock().unwrap().push_str(&data);
+                }
+            }
+
             egui_ctx.request_repaint_after(Duration::from_millis(100));
         }
     })

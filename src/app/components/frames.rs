@@ -1,4 +1,4 @@
-use std::sync::atomic::Ordering;
+use std::time::Duration;
 
 use egui::{ScrollArea, Ui};
 
@@ -39,7 +39,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                             //       when the frame is changed via the API.
                             //       So we need to manually trigger a redraw.
                             //       https://stackoverflow.com/questions/41798498/how-to-use-lldb-trace-thread-and-python-sbthread-ebroadcastbitselectedframechang/41815283#41815283
-                            app.debug_session_reset.store(true, Ordering::Relaxed);
+                            app.scroll_source_view();
                         }
                         ui.end_row();
                     }
