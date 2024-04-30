@@ -1,6 +1,7 @@
 use egui::{CollapsingHeader, Response, Ui, Widget};
 use lldb::SBValue;
 
+/// `VariableList` renders a nested list of debugger values.
 pub struct VariableList<'a> {
     values: Box<dyn Iterator<Item = SBValue> + 'a>,
 }

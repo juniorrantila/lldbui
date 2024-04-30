@@ -2,6 +2,9 @@ use ansi_parser::AnsiSequence;
 use ansi_parser::{AnsiParser, Output};
 use egui::{text::LayoutJob, Color32, Response, TextFormat, Ui, Widget};
 
+/// `AnsiString` renders a label from a string with ANSI Escape Codes.
+///
+/// Currently only the color yellow is handled. All other sequences are stripped.
 pub struct AnsiString<'a> {
     text: &'a str,
 }
