@@ -3,7 +3,7 @@ use egui::{ScrollArea, Ui};
 use crate::app::{widgets::VariableList, App, VariablesTab};
 
 pub fn add(app: &mut App, ui: &mut Ui) {
-    let frame = app.debug_session.selected_frame();
+    let state = app.debug_session.state.lock().unwrap();
 
     ui.horizontal(|ui| {
         ui.selectable_value(&mut app.variables_tab, VariablesTab::Locals, "locals");
@@ -16,16 +16,16 @@ pub fn add(app: &mut App, ui: &mut Ui) {
         .auto_shrink(false)
         .show(ui, |ui| match app.variables_tab {
             VariablesTab::Locals => {
-                ui.add(VariableList::new(frame.locals().iter()));
+                ui.add(VariableList::new(state.locals.iter()));
             }
             VariablesTab::Statics => {
-                ui.add(VariableList::new(frame.statics().iter()));
+                ui.add(VariableList::new(state.statics.iter()));
             }
             VariablesTab::Arguments => {
-                ui.add(VariableList::new(frame.arguments().iter()));
+                ui.add(VariableList::new(state.arguments.iter()));
             }
             VariablesTab::Registers => {
-                ui.add(VariableList::new(frame.registers().iter()));
+                ui.add(VariableList::new(state.registers.iter()));
             }
         });
 }

@@ -9,14 +9,11 @@ use crate::app::widgets::AnsiString;
 use crate::app::App;
 
 pub fn add(app: &mut App, ui: &mut Ui) {
-    let frame = app.debug_session.selected_frame();
-    if !frame.is_valid() {
-        return;
-    }
+    let debug_session = &app.debug_session;
+    let state = debug_session.state.lock().unwrap();
+    let frame = state.selected_frame().expect("no frame selected");
 
     if let Some(line_entry) = frame.line_entry() {
-        let breakpoint_locations = app.debug_session.breakpoint_locations();
-
         let path: PathBuf = [
             line_entry.filespec().directory(),
             line_entry.filespec().filename(),
@@ -28,7 +25,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
         ui.label(&key);
         ui.separator();
 
-        if let Some(source) = app.debug_session.get_source(&path) {
+        if let Some(source) = app.get_source(&path) {
             let theme = &CodeTheme::from_style(ui.style());
             let language = detect_language(frame.compile_unit());
             let line_entry_color = ui.style().visuals.warn_fg_color;
@@ -46,11 +43,20 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                             for line in source.lines() {
                                 i += 1;
                                 let mut found = false;
-                                for (_, bp_file, bp_line) in breakpoint_locations.iter() {
-                                    if line_entry.filespec().filename() == bp_file && i == *bp_line
-                                    {
-                                        ui.label(RichText::new("⚫").color(breakpoint_color));
-                                        found = true;
+                                for location in state.breakpoints.iter() {
+                                    if let Some(address) = location.address() {
+                                        if let Some(bp_line_entry) = address.line_entry() {
+                                            if line_entry.filespec().filename()
+                                                == bp_line_entry.filespec().filename()
+                                                && i == bp_line_entry.line()
+                                            {
+                                                ui.label(
+                                                    RichText::new("⚫").color(breakpoint_color),
+                                                );
+                                                found = true;
+                                                break;
+                                            }
+                                        }
                                     }
                                 }
                                 if !found {
@@ -72,10 +78,10 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                                 let response =
                                     ui.add(egui::Label::new(layout_job).selectable(true));
                                 if i == line_entry.line()
-                                    && app.scroll_source_view.load(Ordering::Relaxed)
+                                    && app.source_view_changed.load(Ordering::Relaxed)
                                 {
                                     response.scroll_to_me(Some(Align::Center));
-                                    app.scroll_source_view.store(false, Ordering::Relaxed)
+                                    app.source_view_changed.store(false, Ordering::Relaxed)
                                 }
                                 ui.end_row();
                             }

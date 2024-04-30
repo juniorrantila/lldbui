@@ -3,6 +3,9 @@ mod egui_app;
 mod frame_history;
 mod widgets;
 
+use std::collections::HashMap;
+use std::fs::read_to_string;
+use std::path::Path;
 use std::str::FromStr;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -11,10 +14,10 @@ use std::{thread, thread::JoinHandle};
 
 use eframe::CreationContext;
 use egui::{style::ScrollStyle, Context};
-use lldb::{SBEvent, SBListener, SBProcessEvent, SBTarget};
+use lldb::{SBEvent, SBListener, SBProcess, SBProcessEvent, SBTarget};
 
 use crate::app::frame_history::FrameHistory;
-use crate::debug_session::DebugSession;
+use crate::debug_session::{DebugSession, DebugSessionState};
 use crate::resources;
 
 #[derive(PartialEq)]
@@ -48,13 +51,12 @@ pub struct App {
 
     show_confirmation_dialog: bool,
     allowed_to_close: bool,
-    scroll_source_view: Arc<AtomicBool>,
+
+    source_cache: HashMap<String, String>,
+    source_view_changed: Arc<AtomicBool>,
 
     console_input: String,
     console_output: String,
-
-    stdout: Arc<Mutex<String>>,
-    stderr: Arc<Mutex<String>>,
 }
 
 impl App {
@@ -65,17 +67,14 @@ impl App {
         resources::register_fonts(&mut style);
         cc.egui_ctx.set_style(style);
 
-        let scroll_source_view = Arc::new(AtomicBool::new(false));
-        let stdout = Arc::new(Mutex::new(String::new()));
-        let stderr = Arc::new(Mutex::new(String::new()));
+        let source_view_changed = Arc::new(AtomicBool::new(false));
 
         handle_lldb_events_thread(
             cc.egui_ctx.clone(),
-            debug_session.target.as_ref().unwrap().clone(),
             debug_session.listener.clone(),
-            scroll_source_view.clone(),
-            stdout.clone(),
-            stderr.clone(),
+            debug_session.target.clone(),
+            debug_session.state.clone(),
+            source_view_changed.clone(),
         );
 
         Self {
@@ -88,18 +87,24 @@ impl App {
 
             show_confirmation_dialog: false,
             allowed_to_close: false,
-            scroll_source_view,
+
+            source_cache: HashMap::new(),
+            source_view_changed,
 
             console_input: String::new(),
             console_output: String::from_str("\n\n").unwrap(),
-
-            stdout,
-            stderr,
         }
     }
 
-    pub fn scroll_source_view(&self) {
-        self.scroll_source_view.store(true, Ordering::Relaxed);
+    pub fn get_source(&mut self, path: &Path) -> Option<&String> {
+        match path.exists() {
+            true => Some(
+                self.source_cache
+                    .entry(path.to_str().unwrap().to_string())
+                    .or_insert(read_to_string(path).unwrap()),
+            ),
+            false => None,
+        }
     }
 }
 
@@ -107,11 +112,10 @@ impl App {
 // For example when new data from stdout of the debugged process is available.
 pub fn handle_lldb_events_thread(
     egui_ctx: Context,
-    target: SBTarget,
     listener: SBListener,
-    scroll: Arc<AtomicBool>,
-    stdout: Arc<Mutex<String>>,
-    stderr: Arc<Mutex<String>>,
+    target: SBTarget,
+    state: Arc<Mutex<DebugSessionState>>,
+    source_view_changed: Arc<AtomicBool>,
 ) -> JoinHandle<()> {
     thread::spawn(move || {
         let event = SBEvent::new();
@@ -122,17 +126,23 @@ pub fn handle_lldb_events_thread(
             }
             tracing::debug!("LLDB event: {:?}", event);
 
-            if event.event_type() == SBProcessEvent::BROADCAST_BIT_STATE_CHANGED {
-                scroll.store(true, Ordering::Relaxed);
-            } else if event.event_type() == SBProcessEvent::BROADCAST_BIT_STDOUT {
-                if let Some(data) = target.process().get_stdout_all() {
-                    stdout.lock().unwrap().push_str(&data);
-                }
-            } else if event.event_type() == SBProcessEvent::BROADCAST_BIT_STDERR {
-                // TODO(ds): somehow stderr of the process ends up in stdout and this is never triggered?
-                // https://github.com/llvm/llvm-project/issues/25350#issuecomment-980951241
-                if let Some(data) = target.process().get_stderr_all() {
-                    stderr.lock().unwrap().push_str(&data);
+            if let Some(process_event) = SBProcess::event_as_process_event(&event) {
+                let event_type = event.event_type();
+                if event_type == SBProcessEvent::BROADCAST_BIT_STATE_CHANGED {
+                    let mut state = state.lock().unwrap();
+                    state.process_state = process_event.process_state();
+                    state.process_pid = process_event.process().process_id();
+                    source_view_changed.store(true, Ordering::Relaxed);
+                } else if event_type == SBProcessEvent::BROADCAST_BIT_STDOUT {
+                    if let Some(data) = target.process().get_stdout_all() {
+                        state.lock().unwrap().stdout.push_str(&data);
+                    }
+                } else if event_type == SBProcessEvent::BROADCAST_BIT_STDERR {
+                    // TODO(ds): somehow stderr of the process ends up in stdout and this is never triggered?
+                    // https://github.com/llvm/llvm-project/issues/25350#issuecomment-980951241
+                    if let Some(data) = target.process().get_stderr_all() {
+                        state.lock().unwrap().stderr.push_str(&data);
+                    }
                 }
             }
 

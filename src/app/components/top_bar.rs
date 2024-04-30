@@ -3,30 +3,31 @@ use egui::{Align, Color32, Layout, Ui};
 use crate::app::{widgets::IconButton, App};
 
 pub fn add(app: &mut App, ui: &mut Ui) {
-    let debug_session = &mut app.debug_session;
+    let debug_session = &app.debug_session;
+    let state = debug_session.state.lock().unwrap();
 
     ui.horizontal(|ui| {
         if ui
             .add_enabled(
-                debug_session.process_is_running(),
+                state.process_is_running,
                 IconButton::new_with_color("⏸", "Stop", Color32::RED),
             )
             .clicked()
         {
-            debug_session.process_stop();
+            debug_session.stop_process();
         }
         if ui
             .add_enabled(
-                debug_session.process_can_continue(),
+                state.process_can_continue,
                 IconButton::new_with_color("⏵", "Continue", Color32::GREEN),
             )
             .clicked()
         {
-            debug_session.process_continue();
+            debug_session.continue_process();
         }
         if ui
             .add_enabled(
-                debug_session.process_can_continue(),
+                state.process_can_continue,
                 IconButton::new("⬇", "Step Into"),
             )
             .clicked()
@@ -35,7 +36,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
         }
         if ui
             .add_enabled(
-                debug_session.process_can_continue(),
+                state.process_can_continue,
                 IconButton::new("⬈", "Step Over"),
             )
             .clicked()
@@ -43,10 +44,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
             debug_session.step_over();
         }
         if ui
-            .add_enabled(
-                debug_session.has_parent_frame(),
-                IconButton::new("⬆", "Step Out"),
-            )
+            .add_enabled(state.can_step_out, IconButton::new("⬆", "Step Out"))
             .clicked()
         {
             debug_session.step_out();

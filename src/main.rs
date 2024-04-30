@@ -7,9 +7,8 @@ mod debug_session;
 mod defines;
 mod resources;
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use clap::Parser;
-use lldb::SBDebugger;
 
 use crate::cli::Cli;
 use debug_session::DebugSession;
@@ -22,23 +21,18 @@ fn main() -> Result<()> {
 
     let cli = Cli::parse();
 
-    debug_session::initialize();
-    let debugger = SBDebugger::create(!cli.no_lldbinit);
-    // debugger.enable_log("lldb", &["process", "target"]);
-    let mut session = DebugSession::new(debugger);
-
-    if let Some(executable) = cli.executable {
-        session.run(&executable, cli.args)?
+    let session = if let Some(executable) = cli.executable {
+        DebugSession::run(&executable, !cli.no_lldbinit, cli.args)?
     } else if let Some(pid) = cli.attach_pid {
-        session.attach_pid(pid)?
+        DebugSession::attach_pid(pid, !cli.no_lldbinit)?
     } else if let Some(name) = cli.attach_name {
-        session.attach_name(&name)?
+        DebugSession::attach_name(&name, !cli.no_lldbinit)?
     } else {
         // Should not happen because we require at least one parameter as cli option.
-        panic!("required debug session parameters missing")
+        bail!("required debug session parameter missing")
     };
 
-    let optins = eframe::NativeOptions {
+    let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_maximized(true)
             .with_icon(resources::load_icon()),
@@ -48,12 +42,10 @@ fn main() -> Result<()> {
 
     eframe::run_native(
         crate::defines::APP_NAME,
-        optins,
+        options,
         Box::new(|cc| Box::new(app::App::new(cc, session))),
     )
     .unwrap();
-
-    debug_session::shutdown();
 
     Ok(())
 }

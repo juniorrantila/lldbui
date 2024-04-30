@@ -3,6 +3,8 @@ use egui::{Color32, ScrollArea, Ui};
 use crate::app::{widgets::IconButton, App, BreakpointsTab};
 
 pub fn add(app: &mut App, ui: &mut Ui) {
+    let state = app.debug_session.state.lock().unwrap();
+
     ui.horizontal(|ui| {
         ui.selectable_value(
             &mut app.breakpoints_tab,
@@ -22,7 +24,17 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                 .num_columns(4)
                 .striped(true)
                 .show(ui, |ui| {
-                    for (id, file, line) in app.debug_session.breakpoint_locations().iter() {
+                    for location in state.breakpoints.iter() {
+                        let id = location.breakpoint().id();
+                        let mut file = String::new();
+                        let mut line = 0;
+                        if let Some(address) = location.address() {
+                            if let Some(line_entry) = address.line_entry() {
+                                file = line_entry.filespec().filename().to_string();
+                                line = line_entry.line();
+                            }
+                        }
+
                         ui.label(format!("{}", id));
                         ui.label(file);
                         ui.label(format!("{}", line));
@@ -30,7 +42,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                             .add(IconButton::new_with_color("❌", "remove", Color32::RED))
                             .clicked()
                         {
-                            app.debug_session.delete_breakpoint(*id);
+                            app.debug_session.delete_breakpoint(id);
                         }
                         ui.end_row();
                     }
@@ -39,7 +51,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                 .num_columns(3)
                 .striped(true)
                 .show(ui, |ui| {
-                    for watchpoint in app.debug_session.target.as_ref().unwrap().watchpoints() {
+                    for watchpoint in state.watchpoints.iter() {
                         ui.label(format!("{}", watchpoint.id()));
                         ui.label(format!("{:#x}", watchpoint.watch_address()));
                         if ui
