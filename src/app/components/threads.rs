@@ -32,7 +32,11 @@ pub fn add(app: &mut App, ui: &mut Ui) {
 }
 
 fn thread_label(thread: &SBThread) -> String {
-    let mut label = format!("{} {}", thread.thread_id(), thread.name().unwrap_or(""));
+    let mut label = format!(
+        "{} {}",
+        thread.thread_id(),
+        thread.name().unwrap_or_default()
+    );
     if let Some(queue) = thread.queue() {
         label.push_str(&format!(" queue={}", queue.name()));
     }

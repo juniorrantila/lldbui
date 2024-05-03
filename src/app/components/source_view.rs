@@ -47,7 +47,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                 .auto_shrink(false)
                 .animated(false)
                 .show_rows(ui, row_height, total_rows, |ui, mut row_range| {
-                    let first = row_range.next().unwrap();
+                    let first = row_range.next().unwrap_or(0);
                     let last = row_range.next_back().unwrap_or(first);
                     let mut scroll_source_rect = Rect::NOTHING;
                     egui::Grid::new("source")
