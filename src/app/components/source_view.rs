@@ -5,7 +5,7 @@ use egui::{Align, Rect, RichText, ScrollArea, Ui};
 use egui_extras::syntax_highlighting::{highlight, CodeTheme};
 use lldb::SBCompileUnit;
 
-use crate::app::widgets::AnsiString;
+use crate::app::widgets::{AnsiString, IconBreakpoint};
 use crate::app::App;
 use crate::debugger;
 
@@ -37,7 +37,6 @@ pub fn add(app: &mut App, ui: &mut Ui) {
             let theme = &CodeTheme::from_style(ui.style());
             let language = detect_language(frame.compile_unit());
             let line_entry_color = ui.style().visuals.warn_fg_color;
-            let breakpoint_color = ui.style().visuals.error_fg_color;
 
             let row_height = ui.spacing().interact_size.y;
             let total_rows = source.lines().count();
@@ -72,7 +71,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                                     if line_entry.filespec().filename() == bp_file
                                         && i == *bp_line as usize
                                     {
-                                        ui.label(RichText::new("⚫").color(breakpoint_color));
+                                        ui.add(IconBreakpoint::new());
                                         found = true;
                                         break;
                                     }
