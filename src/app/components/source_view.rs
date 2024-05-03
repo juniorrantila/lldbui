@@ -51,6 +51,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                     let mut scroll_source_rect = Rect::NOTHING;
                     egui::Grid::new("source")
                         .num_columns(4)
+                        .min_col_width(5.0)
                         .start_row(first)
                         .show(ui, |ui| {
                             let mut i = first;
