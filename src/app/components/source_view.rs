@@ -1,7 +1,7 @@
 use std::fs::read_to_string;
 use std::path::PathBuf;
 
-use egui::{Align, RichText, ScrollArea, Ui};
+use egui::{Align, Rect, RichText, ScrollArea, Ui};
 use egui_extras::syntax_highlighting::{highlight, CodeTheme};
 use lldb::SBCompileUnit;
 
@@ -39,22 +39,29 @@ pub fn add(app: &mut App, ui: &mut Ui) {
             let line_entry_color = ui.style().visuals.warn_fg_color;
             let breakpoint_color = ui.style().visuals.error_fg_color;
 
+            let row_height = ui.spacing().interact_size.y;
+            let total_rows = source.lines().count();
+
             ScrollArea::both()
                 .auto_shrink(false)
                 .animated(false)
-                .show(ui, |ui| {
+                .show_rows(ui, row_height, total_rows, |ui, mut row_range| {
+                    let first = row_range.next().unwrap();
+                    let last = row_range.next_back().unwrap_or(first);
+                    let mut scroll_source_rect = Rect::NOTHING;
                     egui::Grid::new("source")
                         .num_columns(4)
-                        .min_col_width(10.)
+                        .start_row(first)
                         .show(ui, |ui| {
-                            let mut i = 0;
-                            for line in source.lines() {
+                            let mut i = first;
+                            for line in source.lines().skip(i).take((last - first) + 1) {
                                 i += 1;
                                 let mut found = false;
                                 for (_, bp_file, bp_line) in
                                     debugger::breakpoint_locations(&app.target).iter()
                                 {
-                                    if line_entry.filespec().filename() == bp_file && i == *bp_line
+                                    if line_entry.filespec().filename() == bp_file
+                                        && i == *bp_line as usize
                                     {
                                         ui.label(RichText::new("⚫").color(breakpoint_color));
                                         found = true;
@@ -65,26 +72,36 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                                     ui.label(" ");
                                 }
 
-                                if i == line_entry.line() {
+                                if i == line_entry.line() as usize {
                                     ui.label(RichText::new("→").color(line_entry_color));
                                 } else {
                                     ui.label(" ");
                                 }
 
                                 let mut line_number = RichText::new(format!("{}", i));
-                                if i == line_entry.line() {
+                                if i == line_entry.line() as usize {
                                     line_number = line_number.color(line_entry_color);
                                 }
                                 ui.label(line_number);
                                 let layout_job = highlight(ui.ctx(), theme, line, &language);
                                 let response =
                                     ui.add(egui::Label::new(layout_job).selectable(true));
-                                if i == line_entry.line() && scroll {
-                                    response.scroll_to_me(Some(Align::Center));
+                                // record location of first line to later calculate a scroll offset
+                                if scroll && i - 1 == first {
+                                    scroll_source_rect = response.rect;
                                 }
                                 ui.end_row();
                             }
-                        })
+                        });
+                    // scroll to the target line
+                    if scroll {
+                        let line_diff = line_entry.line() as i32 - (first + 1) as i32;
+                        let spacing_y = ui.spacing().item_spacing.y;
+                        let y_diff = line_diff as f32 * (row_height + spacing_y);
+                        scroll_source_rect.min.y += y_diff;
+                        scroll_source_rect.max.y += y_diff;
+                        ui.scroll_to_rect(scroll_source_rect, Some(Align::Center));
+                    };
                 });
         } else {
             tracing::info!("source file not found: {}", path.display());
