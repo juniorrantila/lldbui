@@ -41,6 +41,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
 
             let row_height = ui.spacing().interact_size.y;
             let total_rows = source.lines().count();
+            let target_line = line_entry.line() as usize;
 
             ScrollArea::both()
                 .auto_shrink(false)
@@ -53,6 +54,13 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                         .num_columns(4)
                         .min_col_width(5.0)
                         .start_row(first)
+                        .with_row_color(move |i, style| {
+                            if i + 1 == target_line {
+                                Some(style.visuals.faint_bg_color)
+                            } else {
+                                None
+                            }
+                        })
                         .show(ui, |ui| {
                             let mut i = first;
                             for line in source.lines().skip(i).take((last - first) + 1) {
@@ -73,14 +81,14 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                                     ui.label(" ");
                                 }
 
-                                if i == line_entry.line() as usize {
+                                if i == target_line as usize {
                                     ui.label(RichText::new("→").color(line_entry_color));
                                 } else {
                                     ui.label(" ");
                                 }
 
                                 let mut line_number = RichText::new(format!("{}", i));
-                                if i == line_entry.line() as usize {
+                                if i == target_line {
                                     line_number = line_number.color(line_entry_color);
                                 }
                                 ui.label(line_number);
@@ -96,7 +104,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                         });
                     // scroll to the target line
                     if scroll {
-                        let line_diff = line_entry.line() as i32 - (first + 1) as i32;
+                        let line_diff = target_line as i32 - (first + 1) as i32;
                         let spacing_y = ui.spacing().item_spacing.y;
                         let y_diff = line_diff as f32 * (row_height + spacing_y);
                         scroll_source_rect.min.y += y_diff;
