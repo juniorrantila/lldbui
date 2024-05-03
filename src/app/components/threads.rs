@@ -1,13 +1,9 @@
-use std::sync::atomic::Ordering;
-
 use egui::{ScrollArea, Ui};
 use lldb::SBThread;
 
 use crate::app::App;
 
 pub fn add(app: &mut App, ui: &mut Ui) {
-    let state = app.debug_session.state.lock().unwrap();
-
     ScrollArea::both()
         .id_source("threads")
         .auto_shrink(false)
@@ -16,8 +12,8 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                 .num_columns(1)
                 .striped(true)
                 .show(ui, |ui| {
-                    let mut selected_thread_id = state.selected_thread_id;
-                    for thread in state.threads.iter() {
+                    let mut selected_thread_id = app.target.process().selected_thread().thread_id();
+                    for thread in app.target.process().threads() {
                         if ui
                             .selectable_value(
                                 &mut selected_thread_id,
@@ -26,11 +22,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                             )
                             .clicked()
                         {
-                            app.debug_session.select_thread(thread.thread_id());
-                            // (ds): lldb does not publish thread changed events
-                            //       when the thread is changed via the API.
-                            //       So we need to manually trigger a redraw.
-                            app.source_view_changed.store(true, Ordering::Relaxed)
+                            app.target.process().set_selected_thread(&thread);
                         }
                         ui.end_row();
                     }

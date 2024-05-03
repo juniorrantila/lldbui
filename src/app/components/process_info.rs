@@ -3,26 +3,32 @@ use egui::Ui;
 use crate::app::App;
 
 pub fn add(app: &App, ui: &mut Ui) {
-    let state = app.debug_session.state.lock().unwrap();
-
     egui::Grid::new("Process")
         .num_columns(2)
         .striped(true)
         .show(ui, |ui| {
             ui.label("Target:");
-            ui.label(state.executable);
+            if let Some(executable) = app.target.executable() {
+                ui.label(executable.filename());
+            }
             ui.end_row();
 
             ui.label("Args:");
-            ui.label(state.process_args.join(" "));
+            ui.label(
+                app.target
+                    .get_launch_info()
+                    .arguments()
+                    .collect::<Vec<&str>>()
+                    .join(" "),
+            );
             ui.end_row();
 
             ui.label("State:");
-            ui.label(format!("{:?}", state.process_state));
+            ui.label(format!("{:?}", app.target.process().state()));
             ui.end_row();
 
             ui.label("PID:");
-            ui.label(format!("{}", state.process_pid));
+            ui.label(format!("{}", app.target.process().process_id()));
             ui.end_row();
         });
 }

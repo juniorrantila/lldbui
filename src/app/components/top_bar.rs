@@ -1,53 +1,64 @@
 use egui::{Align, Color32, Layout, Ui};
+use lldb::RunMode;
 
-use crate::app::{widgets::IconButton, App};
+use crate::{
+    app::{widgets::IconButton, App},
+    debugger,
+};
 
 pub fn add(app: &mut App, ui: &mut Ui) {
-    let debug_session = &app.debug_session;
-    let state = debug_session.state.lock().unwrap();
+    let process = app.target.process();
 
     ui.horizontal(|ui| {
         if ui
             .add_enabled(
-                state.process_is_running,
+                debugger::process_can_stop(&process),
                 IconButton::new_with_color("⏸", "Stop", Color32::RED),
             )
             .clicked()
         {
-            debug_session.stop_process();
+            process.stop().unwrap();
         }
         if ui
             .add_enabled(
-                state.process_can_continue,
+                debugger::process_can_continue(&process),
                 IconButton::new_with_color("⏵", "Continue", Color32::GREEN),
             )
             .clicked()
         {
-            debug_session.continue_process();
+            process.continue_execution().unwrap();
         }
         if ui
             .add_enabled(
-                state.process_can_continue,
+                debugger::process_can_continue(&process),
                 IconButton::new("⬇", "Step Into"),
             )
             .clicked()
         {
-            debug_session.step_into();
+            process
+                .selected_thread()
+                .step_into(RunMode::OnlyDuringStepping);
         }
         if ui
             .add_enabled(
-                state.process_can_continue,
+                debugger::process_can_continue(&process),
                 IconButton::new("⬈", "Step Over"),
             )
             .clicked()
         {
-            debug_session.step_over();
+            process
+                .selected_thread()
+                .step_over(RunMode::OnlyDuringStepping)
+                .unwrap();
         }
         if ui
-            .add_enabled(state.can_step_out, IconButton::new("⬆", "Step Out"))
+            .add_enabled(
+                debugger::process_frame_has_parent(&process),
+                IconButton::new("⬆", "Step Out"),
+            )
             .clicked()
         {
-            debug_session.step_out();
+            process.selected_thread().step_out().unwrap();
         }
 
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {

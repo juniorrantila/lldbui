@@ -23,7 +23,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                 if response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
                     app.console_output
                         .push_str(&format!("(lldb) {}\n", app.console_input));
-                    match app.debug_session.execute_command(&app.console_input) {
+                    match app.target.debugger().execute_command(&app.console_input) {
                         Ok(result) => app.console_output.push_str(result),
                         Err(err) => app.console_output.push_str(&err),
                     }
@@ -34,12 +34,18 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                 }
             }
             ConsoleTab::Stdout => {
-                let state = app.debug_session.state.lock().unwrap();
-                ui.label(state.stdout.as_str());
+                if let Some(output) = app.target.process().get_stdout_all() {
+                    app.process_stdout.push_str(&output);
+                }
+                ui.label(app.process_stdout.as_str());
             }
             ConsoleTab::Stderr => {
-                let state = app.debug_session.state.lock().unwrap();
-                ui.label(state.stderr.as_str());
+                // TODO(ds): somehow stderr of the process ends up in stdout and this is always empty?
+                // https://github.com/llvm/llvm-project/issues/25350#issuecomment-980951241
+                if let Some(output) = app.target.process().get_stderr() {
+                    app.process_stderr.push_str(&output);
+                }
+                ui.label(app.process_stderr.as_str());
             }
         });
 }

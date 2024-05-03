@@ -19,13 +19,25 @@ impl eframe::App for App {
                     .show_inside(ui, |ui| components::process_info(self, ui));
                 TopBottomPanel::top("threads")
                     .resizable(true)
-                    .show_inside(ui, |ui| components::threads(self, ui));
+                    .show_inside(ui, |ui| {
+                        if self.target.process().is_stopped() {
+                            components::threads(self, ui)
+                        }
+                    });
                 TopBottomPanel::top("frames")
                     .resizable(true)
-                    .show_inside(ui, |ui| components::frames(self, ui));
+                    .show_inside(ui, |ui| {
+                        if self.target.process().is_stopped() {
+                            components::frames(self, ui)
+                        }
+                    });
                 TopBottomPanel::top("variables")
                     .resizable(true)
-                    .show_inside(ui, |ui| components::variables(self, ui));
+                    .show_inside(ui, |ui| {
+                        if self.target.process().is_stopped() {
+                            components::variables(self, ui)
+                        }
+                    });
                 CentralPanel::default().show_inside(ui, |ui| components::breakpoints(self, ui));
             });
         TopBottomPanel::top("top_panel").show(ctx, |ui| components::top_bar(self, ui));
@@ -35,6 +47,10 @@ impl eframe::App for App {
                 components::console_tabs(self, ui);
             });
 
-        CentralPanel::default().show(ctx, |ui| components::source_view(self, ui));
+        CentralPanel::default().show(ctx, |ui| {
+            if self.target.process().is_stopped() {
+                components::source_view(self, ui)
+            }
+        });
     }
 }

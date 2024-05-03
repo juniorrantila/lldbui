@@ -3,11 +3,11 @@ use lldb::SBValue;
 
 /// `VariableList` renders a nested list of debugger values.
 pub struct VariableList<'a> {
-    values: Box<dyn Iterator<Item = &'a SBValue> + 'a>,
+    values: Box<dyn Iterator<Item = SBValue> + 'a>,
 }
 
 impl<'a> VariableList<'a> {
-    pub fn new(values: impl Iterator<Item = &'a SBValue> + 'a) -> Self {
+    pub fn new(values: impl Iterator<Item = SBValue> + 'a) -> Self {
         Self {
             values: Box::new(values),
         }
@@ -25,8 +25,7 @@ impl<'a> Widget for VariableList<'a> {
                         CollapsingHeader::new(v.name().expect("name should be present"))
                             .id_source(ui.next_auto_id())
                             .show(ui, |ui| {
-                                let children: Vec<SBValue> = v.children().collect();
-                                ui.add(VariableList::new(children.iter()));
+                                ui.add(VariableList::new(v.children()));
                             });
                     } else {
                         ui.label(v.name().unwrap_or_default());

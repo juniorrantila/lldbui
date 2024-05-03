@@ -1,5 +1,5 @@
+use std::fs::read_to_string;
 use std::path::PathBuf;
-use std::sync::atomic::Ordering;
 
 use egui::{Align, RichText, ScrollArea, Ui};
 use egui_extras::syntax_highlighting::{highlight, CodeTheme};
@@ -7,13 +7,17 @@ use lldb::SBCompileUnit;
 
 use crate::app::widgets::AnsiString;
 use crate::app::App;
+use crate::debugger;
 
 pub fn add(app: &mut App, ui: &mut Ui) {
-    let debug_session = &app.debug_session;
-    let state = debug_session.state.lock().unwrap();
-    let frame = state.selected_frame().expect("no frame selected");
+    let frame = app.target.process().selected_thread().selected_frame();
 
     if let Some(line_entry) = frame.line_entry() {
+        let scroll = line_entry.filespec().filename() != app.source_file
+            || line_entry.line() != app.source_line;
+        app.source_file = line_entry.filespec().filename().to_string();
+        app.source_line = line_entry.line();
+
         let path: PathBuf = [
             line_entry.filespec().directory(),
             line_entry.filespec().filename(),
@@ -25,7 +29,11 @@ pub fn add(app: &mut App, ui: &mut Ui) {
         ui.label(&key);
         ui.separator();
 
-        if let Some(source) = app.get_source(&path) {
+        if path.exists() {
+            let source = app
+                .source_cache
+                .entry(path.to_str().unwrap().to_string())
+                .or_insert(read_to_string(path).unwrap());
             let theme = &CodeTheme::from_style(ui.style());
             let language = detect_language(frame.compile_unit());
             let line_entry_color = ui.style().visuals.warn_fg_color;
@@ -43,20 +51,14 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                             for line in source.lines() {
                                 i += 1;
                                 let mut found = false;
-                                for location in state.breakpoints.iter() {
-                                    if let Some(address) = location.address() {
-                                        if let Some(bp_line_entry) = address.line_entry() {
-                                            if line_entry.filespec().filename()
-                                                == bp_line_entry.filespec().filename()
-                                                && i == bp_line_entry.line()
-                                            {
-                                                ui.label(
-                                                    RichText::new("⚫").color(breakpoint_color),
-                                                );
-                                                found = true;
-                                                break;
-                                            }
-                                        }
+                                for (_, bp_file, bp_line) in
+                                    debugger::breakpoint_locations(&app.target).iter()
+                                {
+                                    if line_entry.filespec().filename() == bp_file && i == *bp_line
+                                    {
+                                        ui.label(RichText::new("⚫").color(breakpoint_color));
+                                        found = true;
+                                        break;
                                     }
                                 }
                                 if !found {
@@ -77,11 +79,8 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                                 let layout_job = highlight(ui.ctx(), theme, line, &language);
                                 let response =
                                     ui.add(egui::Label::new(layout_job).selectable(true));
-                                if i == line_entry.line()
-                                    && app.source_view_changed.load(Ordering::Relaxed)
-                                {
+                                if i == line_entry.line() && scroll {
                                     response.scroll_to_me(Some(Align::Center));
-                                    app.source_view_changed.store(false, Ordering::Relaxed)
                                 }
                                 ui.end_row();
                             }

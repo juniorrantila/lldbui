@@ -3,7 +3,7 @@
 
 mod app;
 mod cli;
-mod debug_session;
+mod debugger;
 mod defines;
 mod resources;
 
@@ -11,7 +11,6 @@ use anyhow::{bail, Result};
 use clap::Parser;
 
 use crate::cli::Cli;
-use debug_session::DebugSession;
 
 fn main() -> Result<()> {
     tracing_subscriber::fmt()
@@ -21,12 +20,14 @@ fn main() -> Result<()> {
 
     let cli = Cli::parse();
 
-    let session = if let Some(executable) = cli.executable {
-        DebugSession::run(&executable, !cli.no_lldbinit, cli.args)?
+    debugger::initialize();
+
+    let target = if let Some(executable) = cli.executable {
+        debugger::run(&executable, !cli.no_lldbinit, cli.args)?
     } else if let Some(pid) = cli.attach_pid {
-        DebugSession::attach_pid(pid, !cli.no_lldbinit)?
+        debugger::attach_pid(pid, !cli.no_lldbinit)?
     } else if let Some(name) = cli.attach_name {
-        DebugSession::attach_name(&name, !cli.no_lldbinit)?
+        debugger::attach_name(&name, !cli.no_lldbinit)?
     } else {
         // Should not happen because we require at least one parameter as cli option.
         bail!("required debug session parameter missing")
@@ -43,9 +44,11 @@ fn main() -> Result<()> {
     eframe::run_native(
         crate::defines::APP_NAME,
         options,
-        Box::new(|cc| Box::new(app::App::new(cc, session))),
+        Box::new(|cc| Box::new(app::App::new(cc, target))),
     )
     .unwrap();
+
+    debugger::terminate();
 
     Ok(())
 }
