@@ -23,6 +23,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                             .clicked()
                         {
                             app.target.process().set_selected_thread(&thread);
+                            app.source_file.clear(); // reset to make the source view scroll
                         }
                         ui.end_row();
                     }

@@ -40,6 +40,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                                 .process()
                                 .selected_thread()
                                 .set_selected_frame(frame.frame_id());
+                            app.source_file.clear(); // reset to make the source view scroll
                         }
                         ui.end_row();
                     }
