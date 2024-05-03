@@ -67,15 +67,17 @@ pub fn breakpoint_locations(target: &SBTarget) -> Vec<(i32, String, u32)> {
     let mut locations = Vec::new();
     for breakpoint in target.breakpoints() {
         for location in breakpoint.locations() {
-            if let Some(address) = location.address() {
-                if let Some(line_entry) = address.line_entry() {
-                    locations.push((
-                        breakpoint.id(),
-                        line_entry.filespec().filename().to_string(),
-                        line_entry.line(),
-                    ))
-                }
-            }
+            let Some(address) = location.address() else {
+                continue;
+            };
+            let Some(line_entry) = address.line_entry() else {
+                continue;
+            };
+            locations.push((
+                breakpoint.id(),
+                line_entry.filespec().filename().to_string(),
+                line_entry.line(),
+            ))
         }
     }
     locations

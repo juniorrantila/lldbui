@@ -81,7 +81,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                                     ui.label(" ");
                                 }
 
-                                if i == target_line as usize {
+                                if i == target_line {
                                     ui.label(RichText::new("→").color(line_entry_color));
                                 } else {
                                     ui.label(" ");
