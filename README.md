@@ -45,6 +45,11 @@ DYLD_FRAMEWORK_PATH="/Library/Developer/CommandLineTools/Library/PrivateFramewor
 
 lldbui aims to be a middle ground between plain lldb and a full fledge debugger IDE. If you're already using an IDE like VSCode you probably should use that for debugging. But if you're a Vim/Emacs user that needs a bit more than plain lldb this project might be for you. The embedded lldb console gives you access to all lldb functions while the UI helps you to visually inspect the program state.
 
+## Contributing
+
+If you want to discuss about the project or contribute patches just send an [email](mailto:~dennis/lldbui@lists.sr.ht) to the [mailing list](https://lists.sr.ht/~dennis/lldbui).
+The simplest way to send a patch is to use git send-email, follow [this guide](https://git-send-email.io/) to configure git properly.
+
 ## Credits
 
 This project wouldn't have been possible without:
