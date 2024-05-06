@@ -1,22 +1,25 @@
-use egui::{Color32, Response, Sense, Ui, Vec2, Widget};
+use egui::{Color32, Pos2, Response, Sense, Stroke, Ui, Vec2, Widget};
 
-pub struct IconBreakpoint {
+pub struct IconArrow {
     color: Color32,
 }
 
-impl IconBreakpoint {
+impl IconArrow {
     pub fn new(color: Color32) -> Self {
         Self { color }
     }
 }
 
-impl Widget for IconBreakpoint {
+impl Widget for IconArrow {
     fn ui(self, ui: &mut Ui) -> Response {
         let row_height = ui.spacing().interact_size.y;
         let padding = row_height / 2.;
         let (rect, resp) = ui.allocate_at_least(Vec2::new(row_height, row_height), Sense::hover());
-        ui.painter()
-            .circle_filled(rect.center(), (row_height - padding) / 2., self.color);
+        ui.painter().arrow(
+            Pos2::new(rect.min.x + padding, rect.min.y + (rect.height() / 2.)),
+            Vec2::new(row_height - padding, 0.),
+            Stroke::new(2., self.color),
+        );
         resp
     }
 }

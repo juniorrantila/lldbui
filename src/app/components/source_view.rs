@@ -5,7 +5,7 @@ use egui::{Align, Rect, RichText, ScrollArea, Ui};
 use egui_extras::syntax_highlighting::{highlight, CodeTheme};
 use lldb::SBCompileUnit;
 
-use crate::app::widgets::{AnsiString, IconBreakpoint};
+use crate::app::widgets::{AnsiString, IconArrow, IconBreakpoint};
 use crate::app::App;
 use crate::debugger;
 
@@ -36,7 +36,6 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                 .or_insert(read_to_string(path).unwrap());
             let theme = &CodeTheme::from_style(ui.style());
             let language = detect_language(frame.compile_unit());
-            let line_entry_color = ui.style().visuals.warn_fg_color;
 
             let row_height = ui.spacing().interact_size.y;
             let total_rows = source.lines().count();
@@ -71,7 +70,9 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                                     if line_entry.filespec().filename() == bp_file
                                         && i == *bp_line as usize
                                     {
-                                        ui.add(IconBreakpoint::new());
+                                        ui.add(IconBreakpoint::new(
+                                            ui.style().visuals.error_fg_color,
+                                        ));
                                         found = true;
                                         break;
                                     }
@@ -81,14 +82,15 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                                 }
 
                                 if i == target_line {
-                                    ui.label(RichText::new("→").color(line_entry_color));
+                                    ui.add(IconArrow::new(ui.style().visuals.warn_fg_color));
                                 } else {
                                     ui.label(" ");
                                 }
 
                                 let mut line_number = RichText::new(format!("{}", i));
                                 if i == target_line {
-                                    line_number = line_number.color(line_entry_color);
+                                    line_number =
+                                        line_number.color(ui.style().visuals.warn_fg_color);
                                 }
                                 ui.label(line_number);
                                 let layout_job = highlight(ui.ctx(), theme, line, &language);
