@@ -43,7 +43,7 @@ DYLD_FRAMEWORK_PATH="/Library/Developer/CommandLineTools/Library/PrivateFramewor
 
 ## Rationale
 
-lldbui aims to be a middle ground between plain lldb and a full fledge debugger IDE. If you're already using an IDE like VSCode you probably should use that for debugging. But if you're a Vim/Emacs user that needs a bit more than plain lldb this project might be for you. The embedded lldb console gives you access to all lldb functions while the UI helps you to visually inspect the program state.
+lldbui aims to be a middle ground between plain lldb and a full-fledged debugger IDE. If you're already using an IDE like VSCode you probably should use that for debugging. But if you're a Vim/Emacs user that needs a bit more than plain lldb this project might be for you. The embedded lldb console gives you access to all lldb functions while the UI helps you to visually inspect the program state.
 
 ## Contributing
 

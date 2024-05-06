@@ -6,6 +6,12 @@ use crate::app::App;
 pub fn add(app: &mut App, ui: &mut Ui) {
     ui.horizontal(|ui| {
         if cfg!(debug_assertions) {
+            ui.hyperlink_to(
+                RichText::new("lldbui").small(),
+                "https://git.sr.ht/~dennis/lldbui",
+            );
+            ui.label(RichText::new(format!("({})", env!("VERGEN_GIT_SHA"))).small());
+            ui.separator();
             ui.label(
                 RichText::new("⚠ Debug build ⚠")
                     .small()
