@@ -15,16 +15,16 @@ pub fn add(app: &mut App, ui: &mut Ui) {
         .auto_shrink(false)
         .show(ui, |ui| match app.variables_tab {
             VariablesTab::Locals => {
-                ui.add(VariableList::new(frame.locals().iter()));
+                ui.add(VariableList::new(frame.locals().iter(), &app.target));
             }
             VariablesTab::Statics => {
-                ui.add(VariableList::new(frame.statics().iter()));
+                ui.add(VariableList::new(frame.statics().iter(), &app.target));
             }
             VariablesTab::Arguments => {
-                ui.add(VariableList::new(frame.arguments().iter()));
+                ui.add(VariableList::new(frame.arguments().iter(), &app.target));
             }
             VariablesTab::Registers => {
-                ui.add(VariableList::new(frame.registers().iter()));
+                ui.add(VariableList::new(frame.registers().iter(), &app.target));
             }
         });
 }
