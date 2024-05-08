@@ -63,29 +63,37 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                             let mut i = first;
                             for line in source.lines().skip(i).take((last - first) + 1) {
                                 i += 1;
-                                let mut found = false;
+                                let mut breakpoint = None;
                                 for (bp_id, bp_file, bp_line) in
                                     debugger::breakpoint_locations(&app.target).iter()
                                 {
                                     if line_entry.filespec().filename() == bp_file
                                         && i == *bp_line as usize
                                     {
-                                        if ui
-                                            .add(IconBreakpoint::new(
-                                                ui.style().visuals.error_fg_color,
-                                            ))
-                                            .on_hover_text("delete")
-                                            .clicked()
-                                        {
-                                            app.target.delete_breakpoint(*bp_id);
-                                        };
-                                        found = true;
+                                        breakpoint = Some(*bp_id);
                                         break;
                                     }
                                 }
-                                if !found {
-                                    ui.label(" ");
-                                }
+                                let hover_text = if breakpoint.is_some() {
+                                    "delete"
+                                } else {
+                                    "add breakpoint"
+                                };
+                                if ui
+                                    .add(IconBreakpoint::new(breakpoint.is_some()))
+                                    .on_hover_text(hover_text)
+                                    .clicked()
+                                {
+                                    if let Some(bp_id) = breakpoint {
+                                        app.target.delete_breakpoint(bp_id);
+                                    } else {
+                                        let bp = app.target.breakpoint_create_by_location(
+                                            line_entry.filespec().filename(),
+                                            i as u32,
+                                        );
+                                        tracing::debug!("breakpoint created: {:?}", bp);
+                                    }
+                                };
 
                                 if i == target_line {
                                     ui.add(IconArrow::new(ui.style().visuals.warn_fg_color));
