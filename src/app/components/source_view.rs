@@ -64,15 +64,21 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                             for line in source.lines().skip(i).take((last - first) + 1) {
                                 i += 1;
                                 let mut found = false;
-                                for (_, bp_file, bp_line) in
+                                for (bp_id, bp_file, bp_line) in
                                     debugger::breakpoint_locations(&app.target).iter()
                                 {
                                     if line_entry.filespec().filename() == bp_file
                                         && i == *bp_line as usize
                                     {
-                                        ui.add(IconBreakpoint::new(
-                                            ui.style().visuals.error_fg_color,
-                                        ));
+                                        if ui
+                                            .add(IconBreakpoint::new(
+                                                ui.style().visuals.error_fg_color,
+                                            ))
+                                            .on_hover_text("delete")
+                                            .clicked()
+                                        {
+                                            app.target.delete_breakpoint(*bp_id);
+                                        };
                                         found = true;
                                         break;
                                     }

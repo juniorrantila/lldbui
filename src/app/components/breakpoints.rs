@@ -30,7 +30,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                         ui.label(file);
                         ui.label(format!("{}", line));
                         if ui
-                            .add(IconButton::new_with_color("❌", "remove", Color32::RED))
+                            .add(IconButton::new_with_color("❌", "delete", Color32::RED))
                             .clicked()
                         {
                             app.target.delete_breakpoint(*id)
@@ -46,7 +46,7 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                         ui.label(format!("{}", watchpoint.id()));
                         ui.label(format!("{:#x}", watchpoint.watch_address()));
                         if ui
-                            .add(IconButton::new_with_color("❌", "remove", Color32::RED))
+                            .add(IconButton::new_with_color("❌", "delete", Color32::RED))
                             .clicked()
                         {
                             app.target.delete_watchpoint(watchpoint.id())
