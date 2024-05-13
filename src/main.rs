@@ -35,8 +35,13 @@ fn main() -> Result<()> {
 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_maximized(true)
+            .with_app_id(format!(
+                "{}-{}",
+                crate::defines::APP_NAME,
+                env!("VERGEN_GIT_SHA")
+            ))
             .with_icon(resources::load_icon()),
+
         follow_system_theme: true,
         ..Default::default()
     };
