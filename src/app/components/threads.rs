@@ -12,6 +12,10 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                 .num_columns(1)
                 .striped(true)
                 .show(ui, |ui| {
+                    if !app.target.process().is_stopped() {
+                        return;
+                    }
+
                     let mut selected_thread_id = app.target.process().selected_thread().thread_id();
                     for thread in app.target.process().threads() {
                         if ui

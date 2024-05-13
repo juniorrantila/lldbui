@@ -11,6 +11,10 @@ pub fn add(app: &mut App, ui: &mut Ui) {
                 .num_columns(2)
                 .striped(true)
                 .show(ui, |ui| {
+                    if !app.target.process().is_stopped() {
+                        return;
+                    };
+
                     let mut selected_frame_id = app
                         .target
                         .process()

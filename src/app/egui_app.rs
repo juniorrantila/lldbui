@@ -15,29 +15,20 @@ impl eframe::App for App {
             .resizable(true)
             .show(ctx, |ui| {
                 TopBottomPanel::top("process_info")
-                    .resizable(true)
                     .show_inside(ui, |ui| components::process_info(self, ui));
+                let available_height = ui.available_height();
                 TopBottomPanel::top("threads")
                     .resizable(true)
-                    .show_inside(ui, |ui| {
-                        if self.target.process().is_stopped() {
-                            components::threads(self, ui)
-                        }
-                    });
+                    .default_height(available_height / 4.)
+                    .show_inside(ui, |ui| components::threads(self, ui));
                 TopBottomPanel::top("frames")
                     .resizable(true)
-                    .show_inside(ui, |ui| {
-                        if self.target.process().is_stopped() {
-                            components::frames(self, ui)
-                        }
-                    });
+                    .default_height(available_height / 4.)
+                    .show_inside(ui, |ui| components::frames(self, ui));
                 TopBottomPanel::top("variables")
                     .resizable(true)
-                    .show_inside(ui, |ui| {
-                        if self.target.process().is_stopped() {
-                            components::variables(self, ui)
-                        }
-                    });
+                    .default_height(available_height / 4.)
+                    .show_inside(ui, |ui| components::variables(self, ui));
                 CentralPanel::default().show_inside(ui, |ui| components::breakpoints(self, ui));
             });
         TopBottomPanel::top("top_panel").show(ctx, |ui| components::top_bar(self, ui));

@@ -13,18 +13,23 @@ pub fn add(app: &mut App, ui: &mut Ui) {
     ScrollArea::both()
         .id_source("variables")
         .auto_shrink(false)
-        .show(ui, |ui| match app.variables_tab {
-            VariablesTab::Locals => {
-                ui.add(VariableList::new(frame.locals().iter(), &app.target));
+        .show(ui, |ui| {
+            if !app.target.process().is_stopped() {
+                return;
             }
-            VariablesTab::Statics => {
-                ui.add(VariableList::new(frame.statics().iter(), &app.target));
-            }
-            VariablesTab::Arguments => {
-                ui.add(VariableList::new(frame.arguments().iter(), &app.target));
-            }
-            VariablesTab::Registers => {
-                ui.add(VariableList::new(frame.registers().iter(), &app.target));
+            match app.variables_tab {
+                VariablesTab::Locals => {
+                    ui.add(VariableList::new(frame.locals().iter(), &app.target));
+                }
+                VariablesTab::Statics => {
+                    ui.add(VariableList::new(frame.statics().iter(), &app.target));
+                }
+                VariablesTab::Arguments => {
+                    ui.add(VariableList::new(frame.arguments().iter(), &app.target));
+                }
+                VariablesTab::Registers => {
+                    ui.add(VariableList::new(frame.registers().iter(), &app.target));
+                }
             }
         });
 }
