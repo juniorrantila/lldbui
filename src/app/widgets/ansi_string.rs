@@ -17,8 +17,7 @@ impl<'a> AnsiString<'a> {
 
 impl<'a> Widget for AnsiString<'a> {
     fn ui(self, ui: &mut Ui) -> Response {
-        let mode_yellow: heapless::Vec<u8, heapless::consts::U5> =
-            heapless::Vec::from_slice(&[33]).unwrap();
+        let mode_yellow: heapless::Vec<u8, 5> = heapless::Vec::from_slice(&[33]).unwrap();
         let mut color = ui.style().visuals.text_color();
         let mut job = LayoutJob::default();
         let parsed: Vec<Output> = self.text.ansi_parse().collect();
@@ -34,7 +33,7 @@ impl<'a> Widget for AnsiString<'a> {
                 ),
                 Output::Escape(seq) => {
                     if let AnsiSequence::SetGraphicsMode(mode) = seq {
-                        color = if mode == mode_yellow {
+                        color = if *mode == *mode_yellow {
                             Color32::YELLOW
                         } else {
                             ui.style().visuals.text_color()

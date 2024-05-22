@@ -5,20 +5,20 @@ edition = "2021"
 build = "build.rs"
 
 [dependencies]
-egui = { version = "0.27.0", default-features = false }
-eframe = { version = "0.27.0", features = ["persistence"] }
+egui = { version = "0.27.2", default-features = false }
+eframe = { version = "0.27.2", features = ["persistence"] }
 egui_extras = { version = "0.27.2", features = ["syntect"] }
-anyhow = "1.0.82"
+anyhow = "1.0.86"
 clap = { version = "4.5.4", features = ["derive"] }
 lldb = "0.0.11"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-ansi-parser = "0.9.0"
-heapless = "0.6.1"
+ansi-parser = "0.9.1"
+heapless = "0.8.0"
 
 [build-dependencies]
-anyhow = "1.0.82"
-vergen = { version = "8.0.0", features = ["build", "git", "gitcl"] }
+anyhow = "1.0.86"
+vergen = { version = "8.3.1", features = ["build", "git", "gitcl"] }
 
 [patch.crates-io]
 lldb = { git = 'https://github.com/roccoblues/lldb.rs' }
