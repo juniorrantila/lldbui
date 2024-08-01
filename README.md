@@ -33,12 +33,12 @@ In addition to the Rust toolchain you need to fullfill the dependencies of:
 * [egui](https://www.egui.rs) specifically [egui_glow](https://github.com/emilk/egui/tree/master/crates/egui_glow). On Linux that currently means something like: `sudo apt-get install libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev`. MacOS should work out of the box.
 * [lldb.rs](https://docs.rs/lldb/latest/lldb/). Follow the instructions for [Linux](https://github.com/endoli/lldb.rs?tab=readme-ov-file#linux) or [macOS](https://github.com/endoli/lldb.rs?tab=readme-ov-file#macos).
 
-On macOS I currenly install xcode, `brew install llvm` and set:
+On macOS I currently install xcode, `brew install llvm` and set:
 ```
 LLVM_CONFIG="/opt/homebrew/opt/llvm/bin/llvm-config"
 LLVM_ROOT="/opt/homebrew/opt/llvm"
 LLVM_BUILD_ROOT="/opt/homebrew/opt/llvm"
-DYLD_FRAMEWORK_PATH="/Library/Developer/CommandLineTools/Library/PrivateFrameworks"
+DYLD_FRAMEWORK_PATH=/Applications/Xcode.app/Contents/SharedFrameworks
 ```
 
 ## Rationale
