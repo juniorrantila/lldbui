@@ -32,7 +32,7 @@ impl<'a> Widget for VariableList<'a> {
             .show(ui, |ui| {
                 for v in self.values {
                     if v.children().count() > 0 {
-                        CollapsingHeader::new(v.name().expect("name should be present"))
+                        CollapsingHeader::new(v.name().unwrap_or("<noname>"))
                             .id_source(ui.next_auto_id())
                             .show(ui, |ui| {
                                 ui.add(VariableList::new(v.children(), self.target));
